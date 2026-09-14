@@ -1,0 +1,5 @@
+scripts:
+  - name: Run
+    command: npm run dev
+  - name: Test
+    command: npm test

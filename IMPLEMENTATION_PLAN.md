@@ -15,7 +15,7 @@
 |---|---|---|---|---|
 | M1 / 04-01 | R01~R03, R09의 시작·진행 입력 | manifest/lock, Vite, 순수 모델, HTML/CSS/Canvas UI, Node 및 브라우저 검사 | 시작 버튼·Enter, 실제 키, DOM 및 Canvas 픽셀, 모델 시간·경계, 서버 응답, build | 실제 완료, 아래 실행 기록 참조 |
 | M2 / 04-02 | R04~R08 및 종료 입력 | 편대·충돌·점수·승패·재시작과 관련 검사 | 모델 경계·충돌·우선순위·초기화, 실제 브라우저 입력·결과 | 실제 완료, 아래 04-02 실행 기록 참조 |
-| M3 / 04-03 | R10 및 기본 게임 인도 | README, 실제 명령 기반 App 설정, 검증 정리 | 실행·조작 대조, 명령 재실행, PR 리뷰·검사 | 예정, 아직 `.github` 작성 금지 |
+| M3 / 04-03 | R10 및 기본 게임 인도 | README, 실제 명령 기반 App 설정, 검증 정리 | 실행·조작 대조, 명령 재실행, PR 리뷰·검사 | 진행, 로컬 검증·PR 인도 후 coordinator 병합 및 원격 main 확인 대기 |
 
 M1에는 적·점수·승패·재시작이 없었으며 M2에서 추가했다. 일시정지·난이도·목숨·적 공격·배포는 이번 작업에서 제외한다.
 
@@ -31,7 +31,7 @@ M1에는 적·점수·승패·재시작이 없었으며 M2에서 추가했다. �
 | 6 | 03-01 | 완료 | 문서 PR #1 병합 `1de6e849`, 이슈 #2 및 현재 격리 새 세션 확인 |
 | 7 | 04-01 | 완료 | M1 구현, Node 8/8·Chromium 5/5·build, 실제 결과는 아래 기록 |
 | 8 | 04-02 | 완료 | M1 회귀 포함 Node 19/19·Chromium 8/8·build, 자연 승패·정지·재시작 확인 |
-| 9 | 04-03 | 예정 | M3 |
+| 9 | 04-03 | 진행 | README·수동 App 설정·검증·PR 인도, 병합/원격 main 확인 전 완료하지 않음 |
 | 10 | 05-01 | 예정 | 미실행 |
 | 11 | 05-02 | 예정 | 미실행 |
 | 12 | 06-01 | 예정 | 미실행 |
@@ -159,3 +159,41 @@ M1 발사/화면 밖 제거 검사는 M2 적과의 의도된 충돌을 피하는
 - `m2-playing.png`는 세션 아티팩트로 보존하고 저장소에서는 제외한다.
 - 검토한 여섯 파일만 한국어 구현 커밋으로 남기고 정상 feature push 후 원격 SHA를 확인한다. 실제 최종 SHA·원격 결과·검증·미확인은 이슈 #2 단계 댓글과 coordinator 보고에 기록한다.
 - 남은 M3: README와 실제 명령 기반 `.github` App 설정. 별도 04-03 전달까지 착수하지 않으며 PR·병합·배포도 하지 않는다.
+
+## 04-03 계획 및 실행 기록
+
+### 작성 전 검토
+
+- 2026-09-14 12:54 +09:00, 같은 feature branch/격리 세션의 HEAD `d7e987d86be42035c837ddfc5d3b9a4bb708c919`와 clean 상태를 확인했다. 고정 SHA `3637e1ad7897a2e674aa85cb8f3f6154da4b3907`의 `docs/04-03-App-설정과-README.md`를 GitHub contents API raw 응답으로 직접 전문 읽었다.
+- 공식 [저장소 설정 문서](https://docs.github.com/copilot/reference/github-copilot-app-reference/repository-configuration)를 직접 확인했다. `scripts`는 `name`/`command` 목록이며 `triggers`를 생략하면 수동이다. 파일 외부 변경 후 현재 설정을 review/accept하기 전에는 App에 적용되었다고 할 수 없다.
+- 계획: 기존 package scripts에 맞는 수동 Run/Test와 README만 추가 → 명령·조작·설정 형식 대조 → Node/Chromium/build 및 preview 확인 → 소유 서버/브라우저 정리 → diff 검토·한국어 커밋·정상 push → main 대상 기본 코드 PR 생성·메타데이터/검사/리뷰 스레드 확인.
+- App에는 `Run: npm run dev`, `Test: npm test`만 정의한다. 자동 설치·삭제·triggers·추가 instructions·allowed-tools·다른 `.github` 커스터마이징은 넣지 않는다.
+- README는 설치·실행·조작·검사·build/preview를 담당하고 수치의 기준은 PRD로 연결한다. 공개 URL은 배포 예정으로만 표시한다.
+- UI 관찰 시도: 공식 제공 Computer Use 도구가 GitHub Copilot 창을 발견했으나, 해당 창의 `get_window_state`가 `actions are blocked for this application by built-in safety policy`로 거부되었다. 다른 수단이나 파일 변조로 우회하지 않는다. 현재 설정 trust review/accept·App Run은 미확인으로 남기는 것을 사용자 위임에서 허용했다.
+- 기존 소유 dev PID `17652`, 포트 `5173`, HTTP 200을 재확인했다. 검증 중 중복 dev 서버를 띄우지 않는다. 종료 시 소유 shell/브라우저만 정리하고 포트 해제를 확인한다.
+- 이번 세션은 PR 병합을 하지 않는다. **04-03은 병합 및 원격 main 확인 전까지 진행**으로 유지하며, coordinator가 이후 이슈 댓글에서 확정한다.
+
+### 로컬 작성·검증 결과
+
+- 추가 파일은 `README.md`와 `.github/github-app.yml`이다. App 설정은 수동 `Run: npm run dev`, `Test: npm test`의 `name`/`command` 목록만 포함한다. 기존 게임 코드·의존성·설계 문서는 수정하지 않았다.
+- README의 조작·명령·포트·문서 링크를 실제 UI 및 package scripts와 대조했다. Node 일회성 검사로 최소 설정 내용, dev/preview strictPort, README의 npm script 이름과 로컬 링크 존재, 배포 예정 및 trust 미확인 표기를 확인했다.
+- 2026-09-14 12:56~12:57 +09:00, `npm test && npm run test:e2e && npm run build`를 실행했다. Node **19/19, 273ms**, Chromium **8/8, 1.1분**, build **167ms**로 모두 통과했다. 설치를 다시 하거나 의존성을 변경하지 않았다.
+- 12:58, 기존 소유 dev shell을 종료한 뒤 `npm run preview`로 production build를 확인했다. 소유 shell `m3-preview`, Node PID `6624`/부모 `41072`, `http://127.0.0.1:4173/`, strictPort, HTTP 200 및 이 worktree의 명령행을 확인했다.
+- preview에서 실제 시작 버튼·ArrowRight·Space 입력으로 진행 DOM과 우주선 이동·적/탄환 Canvas 픽셀을 확인했다. 콘솔 오류 0. preview는 로컬 확인이며 배포가 아니다.
+- README에 있는 `npm ci`는 M1의 실제 clean install 근거를 유지한다. `npm run browser:install`은 필요한 환경용으로 명시했으며 이 환경에서는 미실행임을 밝혀 두었다.
+
+### 종료 및 제약
+
+- 12:58~12:59, 소유 dev `m1-dev-verified`/PID `17652`와 preview `m3-preview`/PID `6624`를 해당 shell 도구로 종료했다. Playwright 소유 페이지는 close 도구에서 열린 탭 없음 응답을 확인했다.
+- 12:59 `Get-NetTCPConnection -LocalPort 5173,4173 -State Listen` 결과는 **0개**, 두 서버 PID도 더 이상 존재하지 않았다. 다음 세션이 사용할 포트를 해제했다. 모르는 프로세스는 종료하지 않았다.
+- 내장 browser canvas에는 닫기 액션이 없으며 `about:blank` 전환 요청도 지원 URL 형식 밖이라는 도구 오류로 거부됐다. 그 패널 자체의 닫힘은 미확인이다. 패널의 대상 게임 서버와 Playwright 소유 페이지는 위와 같이 종료했다.
+- 종료 사실을 이슈 #2 [즉시 기록 댓글](https://github.com/hahaysh/space-Invaders-demo02/issues/2#issuecomment-5658774690)에 보존했다.
+- 현재 App 설정 trust review/accept와 App Run은 미확인이다. App 창 조회의 안전 정책 거부를 우회하지 않았고, 파일을 읽거나 터미널 명령을 실행한 사실만으로 App 적용·인간 UI 승인을 주장하지 않는다. 사용자는 이 한계를 허용했다.
+- 제품/검사/build 실패는 없었다. UI 조회 및 canvas URL 도구 거부는 실행 환경 제약으로 구분한다. 사람 직접 플레이·실제 OS 탭 전환·다른 OS/브라우저도 여전히 미확인이다.
+
+### PR 인도 기준
+
+- M1/M2와 README의 기본 게임 수용 기준은 로컬 검사로 확인했다. 명시적으로 허용된 App UI 미확인 및 합성 이벤트 범위는 PR에 공개한다.
+- 전체 feature diff와 로컬 결과를 검토하고 한국어 커밋·정상 feature push 후 main 대상 PR을 생성한다. 이 PR은 **기본 코드 병합이며 배포가 아니다**.
+- PR 생성 후 base/head·변경 파일·검사·리뷰 스레드를 읽어 검토하고 최종 SHA/PR/검증/미확인을 이슈 #2와 coordinator에 보고한다. 생성된 PR 번호와 원격 결과 때문에 추가 기록 커밋을 반복하지 않는다.
+- 04-03은 계속 **진행**, 완료 누적은 **8/20**이다. PR 병합 및 원격 main 포함 여부는 coordinator가 후속 확인하고 이슈 댓글에서 완료를 확정한다.
