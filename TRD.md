@@ -11,7 +11,7 @@ UI는 DOM 버튼·키 입력, Canvas 그리기, 점수·결과 표시를 담당�
 
 단일 requestAnimationFrame 루프에서 초 단위 delta를 계산한다.
 긴 프레임은 delta 제한과 작은 하위 갱신으로 과도한 이동·충돌 통과를 방지한다.
-playing에서만 규칙 시간을 전진시키고 충돌 처리 후 승리, 그 다음 방어선 패배를 판단한다.
+playing에서만 규칙 시간을 전진시키고 충돌 처리 후 승리, 그 다음 방어선 목숨 판정을 수행한다(09-01 설계, 아래 절 참조).
 탄환과 적의 제거는 한 번만 반영한다.
 
 이벤트는 한 번만 연결한다. 키 집합으로 반대 방향 동시 입력을 상쇄하며 반복 단발키를 무시한다.
@@ -21,7 +21,7 @@ blur/visibilitychange에서 입력만 비우고 상태를 자동 일시정지·�
 
 ## 일시정지 설계 (07-01 승인, 07-02 구현)
 
-- 모델은 playing/paused 사이의 명시적 전환만 추가한다. 새 게임을 생성하거나 시간·cooldown·중첩 상태를 초기화하지 않는다. title/won/lost 전환 요청은 기존 모델을 보존한다.
+- 모델은 playing/paused 사이의 명시적 전환만 추가한다. 새 게임을 생성하거나 시간·cooldown·중첩 상태를 초기화하지 않는다. title/retry/won/lost 전환 요청은 기존 모델을 보존한다.
 - 현재 `updateGame`의 playing 전용 갱신 경계를 유지한다. paused에서는 충돌·발사·이동·시간 처리를 모두 건너뛰며, 유효하지 않은 delta의 명시적 오류 처리는 보존한다.
 - UI의 `KeyP` 분기는 playing/paused에서만 기본 동작을 막고 `event.repeat`을 무시한다. 전환마다 키 집합을 비우며 paused의 이동·발사는 기본 동작만 막고 저장하지 않는다. 비운 입력이 누르고 있던 키의 repeat로 되살아나지 않도록 처리하고, 새로 누른 진행 입력만 받는다.
 - 전환 시 `previousTime = null`로 rAF 시간 기준을 비운다. 재개 후 첫 프레임 delta는 0이며 이후 실제 프레임 간격만 반영한다. 기존 긴 delta 제한만으로 정지 시간 제외를 대신하지 않는다. 모델의 elapsed와 남은 fireCooldown은 그대로 유지한다.
@@ -32,7 +32,7 @@ blur/visibilitychange에서 입력만 비우고 상태를 자동 일시정지·�
 ## 난이도 선택 설계 (08-01 위임 승인, 08-02 구현)
 
 - 모델에 `pendingDifficulty`와 `currentDifficulty`를 분리한다. 허용 식별자는 `easy`/`normal`/`hard`이며 속도 정의는 PRD 공통 수치표를 따른다. 페이지 최초 `createGame`은 두 값을 보통으로 초기화한다. title의 current는 초기 설정이지 진행한 판의 증거가 아니다. 저장소·쿠키·URL로 설정을 저장하거나 복원하지 않는다.
-- 선택 전용 모델 진입점은 값을 먼저 검증한다. 허용 집합 밖의 값(빈 값·알 수 없는 문자열·null·undefined·다른 타입 포함)은 `RangeError` 하위 `DifficultyError`로 명시하고 기존 상태를 변경하지 않는다. 유효한 선택도 title/won/lost에서만 pending에 반영한다. playing/paused의 유효한 변경 요청은 기존 모델을 그대로 반환하는 잠금 계약이며 UI 비활성화만으로 대신하지 않는다.
+- 선택 전용 모델 진입점은 값을 먼저 검증한다. 허용 집합 밖의 값(빈 값·알 수 없는 문자열·null·undefined·다른 타입 포함)은 `RangeError` 하위 `DifficultyError`로 명시하고 기존 상태를 변경하지 않는다. 유효한 선택도 title/won/lost에서만 pending에 반영한다. playing/paused 및 09-01의 retry에서 유효한 변경 요청은 기존 모델을 그대로 반환하는 잠금 계약이며 UI 비활성화만으로 대신하지 않는다.
 - `startGame`/`restartGame`의 기존 상태 조건을 유지한다. 허용된 시작/재시작에서는 pending을 검증한 후 새 판의 pending/current에 함께 적용하고 기존 게임 초기화·입력 비움·시계 재설정을 수행한다. 유효하지 않은 설정으로 새 판을 만들거나 `||`/`??` 등으로 보통을 대신 넣지 않는다. 잘못된 상태에서의 시작/재시작은 기존 무변경 계약을 유지한다.
 - `moveEnemies`는 `RULES.enemySpeed` 고정 참조 대신 검증된 current의 속도 정의를 사용한다. 수평 이동·가장자리 잔여 이동에 같은 값을 적용하고 하강·충돌·승패·점수·시간 분할은 보존한다. 모델 경계에서 current 유효성을 확인한 뒤 갱신하며 잘못된 값이면 부분 진행 없이 오류를 낸다. pending 변경은 현재 판의 데이터·속도를 바꾸지 않는다. `togglePause`는 두 설정을 포함한 기존 한 판을 그대로 보존한다.
 - UI는 덮개 밖에 레이블과 연결된 기본 HTML select 하나를 두고 pending을 표시한다. title/won/lost에서는 활성, playing/paused에서는 native `disabled`로 잠근다. current는 별도의 읽을 수 있는 DOM 문구로 구분한다. 최초 렌더링 전과 선택·상태 전환 때 select 값·잠금·현재 설정을 모델에서 동기화하며 매 프레임 값을 덮어쓰거나 이벤트·rAF를 추가 생성하지 않는다.
@@ -40,6 +40,20 @@ blur/visibilitychange에서 입력만 비우고 상태를 자동 일시정지·�
 - UI의 선택·시작/재시작 경계에서 예상한 난이도 검증 오류만 처리해 별도 DOM 오류 안내(`role="alert"`)로 노출한다. 실패한 UI 값은 모델의 기존 pending과 다시 맞추되 오류를 숨기거나 설정을 기본값으로 바꾸지 않는다. 다른 예외를 포괄적으로 삼키지 않는다. 게임 상태 문구가 매 프레임 오류 안내를 덮어쓰지 않게 한다.
 
 제품 계약은 PRD R13~R16, 검증 경로는 TEST_PLAN의 08-02 절을 따른다. 실제 모델·브라우저 결과와 실패/복구는 TEST_RESULTS에 기록하며 이 설계 자체를 실행 증거로 사용하지 않는다.
+
+## 목숨·재도전 설계 (09-01 위임 승인, 09-02 구현)
+
+제품 기준은 PRD R06/R08/R13/R14/R17~R20이다. 이 절은 기존 즉시 lost 분기를 대체한 기술 결정이며 실제 검증과 공개 완료를 대신하지 않는다.
+
+- 모델에 `lives`와 `retry` 상태를 추가한다. `createGame` 및 기존 새 게임 생성 경로는 PRD 초기 목숨을 설정한다. `isFinished`는 won/lost만 뜻하도록 유지하여 retry에서 R 재시작이나 난이도 선택이 열리지 않게 한다.
+- `resolveCombat`의 충돌·득점 → 적 전멸 → 생존 적 방어선 검사 순서와 적 바닥 임계식을 유지한다. 생존 적의 `some` 판정 한 곳에서만 목숨을 차감하고 잔여량으로 상태를 결정한다. `updateGame` 시작의 선행 충돌 검사 뒤 return 및 하위 갱신의 상태 변경 뒤 break를 유지해 같은 호출의 남은 시간·추가 발사와 다음 프레임의 재차감을 막는다. won은 lives를 변경하지 않는다.
+- retry/lost는 실패한 모델을 그대로 보유한다. playing 전용 갱신 경계로 중첩 객체·점수·elapsed·fireCooldown까지 동결하며 즉시 새 모델로 교체하지 않는다. delta와 current의 기존 명시 검증 오류는 그대로 유지하고 무변경 상태를 성공형 기본값으로 대체하지 않는다.
+- retry 전용 다음 시도 진입점을 `startGame`/`restartGame`/`togglePause`와 분리하고 retry 밖 요청은 기존 모델을 그대로 반환한다. 허용 요청에서는 current를 검증한 뒤 기존 새 판 생성 로직을 재사용하고 남은 lives만 복원한다. pending/current는 검증된 current로 맞추므로 대기 중 pending을 새 난이도로 적용하지 않는다. 그 외 필드와 중첩 객체는 새로 생성해 이전 실패 모델을 변경하거나 재사용하지 않는다. 잘못된 current는 부분 초기화 전에 `DifficultyError`로 알린다.
+- UI는 실패 상태 진입 때 입력과 `previousTime`을 비우고 Canvas 장면을 유지한다. retry 전용 안내·다음 시도 버튼과 DOM 목숨을 표시하며 최종 결과/새 게임 버튼과 구분한다. 상태별 렌더링·목숨/점수·난이도 동기화를 시작/재시작/실패/승리/다음 시도 모두에 연결한다. `syncDifficulty`는 retry에서도 native select를 disabled로 잠그며 현재 설정을 유지한다.
+- retry의 반복 아닌 Enter와 다음 시도 버튼은 같은 진입점을 호출한다. 키 핸들러는 repeat Enter의 기본 버튼 활성화도 막아 우회 실행되지 않게 하고 R/P·이동·게임 발사는 저장하지 않는다. 이동/Space의 게임 기본 동작 방지와 next 버튼의 키보드 접근성을 함께 유지한다. select 키 제외·keyup의 입력 삭제·blur/hidden 비움은 보존한다. 대기 전후 누른 키의 repeat는 진행 입력으로 되살리지 않는다.
+- 다음 시도는 기존 `enterGame`의 입력 비움·시계 기준 초기화·포커스/화면 전환 경로를 재사용한다. 첫 rAF delta는 0이며 실패 대기 시간을 게임 elapsed에 더하지 않는다. P 재개와 달리 모델 elapsed/cooldown도 새 시도 기준으로 초기화한다. 단일 rAF와 한 번의 리스너 연결을 유지하고 반복 다음 시도/새 게임에서 루프·리스너를 추가하지 않는다.
+
+TEST_PLAN의 09-02 절에서 이전 lost 기대값의 전환과 유지할 경계를 정의한다. UI·README 조작 안내는 구현과 함께 변경하며, 09-01의 코드·검사·설치·실행 미착수 이력은 보존한다. 실제 결과는 TEST_RESULTS와 이슈 #11 댓글을 따른다.
 
 ## 검증
 

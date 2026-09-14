@@ -13,17 +13,21 @@
 | R03 발사 | 출발 좌표/크기·속도·간격·해제 후 쿨다운·화면 밖 제거·불규칙 시간 분할 | Space 유지/해제·반복 탄환 픽셀·상승·스크롤 방지 |
 | R04 편대 | 모든 초기 셀·방향·속도·양쪽 반전/하강·남은 적 경계 | 초기 편대 픽셀·우측 이동·반전/하강 |
 | R05 충돌/점수 | 탄환 하나/적 하나·중복 득점 방지·충돌 통과 방지 | 실제 발사로 적 픽셀 감소·DOM 점수 증가 |
-| R06 승패 | 마지막 적 제거 우선·생존 적 방어선 도달·정확한 바닥 임계값 | 무입력 자연 패배·좌우 발사 자연 승리·DOM 결과/점수 |
+| R06 승패 | 마지막 적 제거 우선·목숨 보존, 생존 적 방어선 도달·정확한 바닥 임계값은 R17로 전환 | 무입력 자연 retry/최종 패배·좌우 발사 자연 승리·DOM 결과/점수/목숨 |
 | R07 종료 정지 | 두 결과에서 모든 모델 필드 불변 | 종료 후 이동/발사 입력에도 Canvas 전체 이미지·점수 불변 |
-| R08 재시작 | 두 결과의 중첩 상태·시간·쿨다운 초기화, title/playing/paused 재시작 무시 | R/버튼·반복 재시작·초기 편대/점수/탄환/플레이어·잔여 입력 제거, playing/paused Enter/R 무시 |
-| R09 입력 관리 | title/paused/종료의 진행 입력 무시 | 단발 repeat 무시·게임 키만 기본 동작 방지·blur/hidden 입력 제거·자동 일시정지 없음 |
+| R08 재시작 | 두 결과의 목숨·중첩 상태·시간·쿨다운 초기화, title/playing/paused/retry 재시작 무시 | R/버튼·반복 재시작·초기 편대/점수/탄환/플레이어·잔여 입력 제거, playing/paused Enter/R 및 retry R 무시 |
+| R09 입력 관리 | title/paused/retry/종료의 진행 입력 무시 | 단발 repeat 무시·게임 키만 기본 동작 방지·blur/hidden 입력 제거·자동 일시정지 없음 |
 | R10 안내/실행 | PRD와 RULES·README·scripts 대조 | UI 제목/키/목표/결과와 README 일치, 아래 build/preview 검사 |
-| R11 P 전환 | playing/paused 왕복, title/won/lost 무시, 상태 외 전체 데이터 보존 | 실제 P 정지/재개·DOM 안내, P repeat 무시, title/won/lost P 무시, paused Enter/R 무시 |
+| R11 P 전환 | playing/paused 왕복, title/retry/won/lost 무시, 상태 외 전체 데이터 보존 | 실제 P 정지/재개·DOM 안내, P repeat 무시, title/retry/won/lost P 무시, paused Enter/R 무시 |
 | R12 동결/재개 | paused 전체 중첩 상태 불변, elapsed/cooldown 보존, 남은 발사 간격 경계 | 정지 전후 Canvas·점수 불변, 전환 입력 제거, 첫 재개 프레임·반복 전환 후 속도·발사 회귀 |
 | R13 선택/초기값 | 새 모델 보통, 모든 상태에서 pending 변경 허용/잠금, current 및 다른 필드 불변 | 레이블/select·상태별 disabled, 같은 페이지 선택 유지·새로고침 보통·저장 없음 |
 | R14 적용/속도 | 시작/두 결과 재시작에서 pending→current, PRD 각 속도의 실제 시간별 변위·반전/하강, P 설정 보존 | 실제 선택·시작/재시작·current 표시·Canvas 이동, 기존 승패/P 포함 회귀 |
 | R15 오류 | 잘못된 값/타입의 명시 오류, 선택/시작/재시작/갱신 실패 전후 전체 상태 불변 | UI 경계 오류의 DOM 알림과 기존 선택 복원; 합성 invalid 경로는 실제 사용자 입력과 구분 |
 | R16 native 입력 | UI 책임이므로 순수 모델로 키보드 동작을 입증하지 않음 | 실제 Tab·화살표/Space/Enter로 select 조작, 선택 중 게임 미시작·미진행, 버튼 실행·select 밖 기존 키 유지 |
+| R17 목숨 판정 | 동시 도달·하위 갱신 중단·다음 갱신 재차감 방지·잔여량별 상태 | 자연 도달마다 DOM 목숨/상태, 다음 시도를 거친 최종 패배 |
+| R18 실패 동결 | retry/lost 전체 중첩 상태·시간·cooldown 불변 | 실패 직후 점수·Canvas 전체 이미지·DOM 안내/목숨 고정 |
+| R19 다음 시도 | 목숨/current만 보존, pending 정렬·나머지 전체 초기화·오류 시 무변경 | 실제 Enter/버튼·초기 장면/점수/설정·첫 rAF·대기 시간 제외 |
+| R20 retry 잠금 | 시작/재시작/P/선택/다음 시도의 상태별 허용·무변경 | R/P/이동/발사/repeat Enter 무시·disabled·누른 키/repeat 잔류 방지 |
 
 브라우저는 실제 버튼/키 입력과 DOM/Canvas 관찰을 사용하며 앱 모델 전역 노출·상태 주입·치트를 금지한다.
 E2E 시간은 Playwright clock으로 제어한다. blur/hidden·일부 repeat/defaultPrevented는 합성 이벤트 검사이며 실제 OS 탭 전환이 아니다.
@@ -51,6 +55,18 @@ E2E 시간은 Playwright clock으로 제어한다. blur/hidden·일부 repeat/de
 5. 실제 브라우저에서 각 선택 후 시작·자연 종료·재시작의 DOM current 및 선택 잠금을 확인한다. playing/paused의 disabled와 P 정지/재개를 관찰하고, 모델 잠금은 1번 직접 호출 결과와 분리한다. Canvas 변위는 실제 관찰 rAF 시간과 PRD 속도로 비교한다. 선택과 다른 판 진행 후 새로고침하면 보통이어야 하고, 저장 API 미사용은 코드 검토와 함께 확인한다. 자연 승패·점수·종료 정지·기존 게임 키/P 전체 회귀를 유지한다.
 6. 제공 `game-check`를 실제 호출한 뒤 모델·Chromium 전체 회귀·build 및 아래 로컬 루트/하위 경로 검사를 수행한다. PR/CI/리뷰·정상 병합 뒤 정확한 main 배포와 실제 공개 선택·잠금·P를 별도 확인한다. 실제 결과·실패·복구·미확인은 TEST_RESULTS와 이슈 #9 단계 댓글에 구분하고 사람의 직접 플레이나 App UI 승인으로 기록하지 않는다.
 
+## 09-02 목숨·재도전 검증 경로
+
+09-01은 문서 검토만 수행했다. 아래 검사는 별도 09-02 지시에 따라 구현·실행하며 실제 결과는 TEST_RESULTS의 09-02 절과 이슈 #11 댓글에서 구분한다. 제품 수치와 상태 계약은 PRD만 참조한다. [08-02 완료 근거](https://github.com/hahaysh/space-Invaders-demo02/issues/9#issuecomment-5660296207)의 난이도 공개 결과를 목숨 검증으로 재사용하지 않는다.
+
+1. 기존 `a surviving defense-line enemy loses after collision scoring`과 `defense-line threshold uses enemy bottom, not its top` 검사를 삭제하지 않는다. 충돌 후 득점·생존 적 수 및 바닥 임계값 직전/정확 도달 조건을 유지하고 즉시 lost 기대만 PRD R17의 잔여 목숨별 retry/lost로 바꾼다. 마지막 적 충돌과 도달이 겹치는 기존 하위 갱신 검사는 won·득점·제거·중단 시각을 유지하고 목숨 불변을 추가한다.
+2. 여러 적이 동시에 도달하는 경우, delta 0의 선행 판정, 양의 delta 중 하강으로 도달하는 경우를 각각 검사한다. 한 호출에서 여러 하위 갱신을 처리할 수 있어도 차감은 한 번이며 retry/lost 진입 뒤 남은 갱신을 중단해야 한다. 동결된 모델에 반복 갱신과 이동/발사 입력을 주어 목숨·점수·중첩 상태·elapsed·cooldown 전부 불변을 확인한다. 기존 최종 두 결과 동결 검사는 잔여 목숨을 설정해 lost에 도달하도록 유지하고 retry를 추가한다.
+3. 새 게임과 won/lost 재시작을 모든 난이도에서 검사해 PRD 초기 목숨·pending 적용·나머지 초기화를 확인한다. 다음 시도는 별도로 실패 점수·탄환·방향·위치·elapsed·남은 cooldown이 있는 모델에서 시작해 lives/current만 유지되고 pending은 current로 맞춰지는지, 모든 나머지 필드/중첩 객체가 초기화되고 실패 모델은 불변인지 검사한다. retry 밖 다음 시도 무시와 retry의 start/restart/P/유효 선택 무변경, invalid 선택/current의 명시 오류·부분 변경 없음도 포함한다.
+4. 기존 `pause defers collisions and defense-line decisions until resume`의 paused 충돌/방어선 미판정과 elapsed 불변을 유지한다. 재개 후 미충돌의 즉시 lost 기대는 잔여 목숨별 새 상태/차감으로 바꾸고, 마지막 충돌 won 경로는 목숨 보존을 추가한다. 모든 허용 난이도와 title/playing/paused/retry/won/lost에서 선택 허용/잠금·invalid 오류·P 전환을 확인하며 기존 속도·cooldown·반전·기본 게임 회귀를 제거하지 않는다.
+5. 기존 자연 패배 E2E는 첫 도달을 최종 패배로 간주하지 않도록 전환한다. 모델 노출/주입 없이 실제 시작·시간 진행으로 retry를 만들고 실패 점수·Canvas 전체 이미지·DOM 목숨/안내·난이도 disabled를 관찰한다. R/P·이동·Space·repeat Enter와 대기 시간에도 동결되어야 한다. 실제 Enter와 다음 시도 버튼을 각각 사용해 새 시도의 초기 장면/점수/current와 첫 프레임·이후 이동/발사를 확인한다. 키를 누른 채 실패한 경우와 retry에서 새로 누른 경우 모두 다음 시도의 입력/repeat 잔류를 검사한다. 버튼 포커스에서 repeat Enter의 native 활성화 우회와 키보드 접근성도 확인한다.
+6. 다음 시도를 거쳐 목숨 소진·lost 및 최종 R/버튼 새 게임까지 실제 브라우저에서 연결한다. 최종 결과에서는 선택이 다시 열리고 다음 새 게임에만 적용되어야 한다. 기존 자연 승리·승리 후 난이도 선택/재시작·종료 동결도 유지하고 남은 목숨을 확인한다. 반복 다음 시도/새 게임/P 뒤 실제 관찰 rAF 시간과 PRD 속도/발사 간격을 비교하고 단일 루프·리스너 구조를 검토한다. 정밀 시간/모든 내부 필드는 모델 근거로, 실제 입력·DOM/Canvas는 브라우저 근거로 분리한다.
+7. 제공 `game-check` 실제 호출 후 모델·Chromium 전체 회귀·build·로컬 루트/하위 경로를 실행한다. PR/CI/리뷰·정상 병합 뒤 정확한 main 배포와 실제 공개에서 초기 목숨부터 소진까지의 자연 도달·재도전·최종 재시작을 별도 확인한다. 기존 검사 실패를 숨기거나 경계를 삭제하지 않고 실제 원인과 변경 기대를 기록한다. TEST_RESULTS 및 이슈 #11 단계 댓글에 실행/실패/복구/미확인과 사용한 시간 제어를 구분하며 사람 직접 플레이로 기록하지 않는다.
+
 ## 실행 순서
 
 1. 격리 경로·branch·HEAD·기준 main 이력, 실제 package scripts·테스트를 확인한다. 기존 사용자 변경은 보존한다.
@@ -59,7 +75,7 @@ E2E 시간은 Playwright clock으로 제어한다. blur/hidden·일부 repeat/de
 4. 소유 dev를 종료한다. `npm run preview`로 4173의 빌드 루트를 검사한다. HTTP·실제 시작/이동/발사·DOM/Canvas·콘솔/페이지 오류를 확인한다. 일반 시간 입력은 clock 기반 E2E와 구분한다.
 5. 소유 루트 preview 종료 후 `npm run preview -- --base=/space-Invaders-demo02/`로 같은 산출물의 로컬 하위 경로를 검사한다. `/space-Invaders-demo02/`에서 문서·JS·CSS·favicon의 실제 URL, HTTP 성공 및 올바른 MIME/본문을 확인한다. SPA fallback의 HTML 200을 자산 성공으로 오인하지 않는다. 페이지 새로고침 후 시작·이동·발사 입력과 DOM/Canvas를 다시 확인한다. 로컬 preview는 Pages 공개 검증이 아니다.
 6. README 조작/명령과 화면을 대조하고 가능하면 스크린샷을 세션 아티팩트에 보존한다. 사람이 직접 한 판 플레이하며 가독성·체감 조작을 확인하는 경로는 별도 수동 확인이며, 수행하지 않았으면 미확인으로 남긴다. 다른 OS/브라우저·실제 탭 전환도 마찬가지다.
-7. 소유 브라우저·서버를 종료하고 해당 PID 종료·포트 해제를 확인한다. 실행 시각·명령·소요 시간·실패/원인·미실행을 결과와 해당 이슈의 단계 댓글에 기록한다(기존 검증·첫 공개 #4, 일시정지 #7, 난이도 #9). diff 검토 후 허용된 feature 커밋·push만 수행한다.
+7. 소유 브라우저·서버를 종료하고 해당 PID 종료·포트 해제를 확인한다. 실행 시각·명령·소요 시간·실패/원인·미실행을 결과와 해당 이슈의 단계 댓글에 기록한다(기존 검증·첫 공개 #4, 일시정지 #7, 난이도 #9, 목숨 #11). diff 검토 후 허용된 feature 커밋·push만 수행한다.
 
 ## Skill 통합 확인
 
@@ -77,3 +93,7 @@ E2E 시간은 Playwright clock으로 제어한다. blur/hidden·일부 repeat/de
 08-01 새 세션에서는 시작 제공 목록의 `game-check`와 저장소 파일 존재만 확인했다. 실제 호출은 하지 않았으며 08-02 별도 지시 때 호출·실행 근거를 기록한다. App trust/Run UI·무요청 자동 적용은 여전히 미확인이며 이전 안전 정책 거부를 우회하지 않는다.
 
 08-02의 명시적 Skill 도구 호출/로드와 실제 후속 검증·실패/복구는 TEST_RESULTS에 기록한다. 위 08-01 미호출 이력과 인간 UI/자동 적용 미확인은 유지한다.
+
+09-01 새 세션에서는 시작 제공 목록의 `game-check` 발견과 저장소 파일 존재만 확인했다. 실제 호출·검증은 하지 않았으며 별도 09-02 지시 때 수행한다. 파일 발견을 호출·자동 적용으로 간주하지 않는다. App trust/Run UI·사람 UI 승인·AGENTS/Skill 무요청 자동 적용은 계속 미확인이며 이전 안전 정책 거부를 우회하지 않는다.
+
+09-02의 명시적 Skill 도구 호출/로드와 실제 검증·실패/복구는 TEST_RESULTS에 기록한다. 위 09-01 미호출 사실과 인간 UI/자동 적용 미확인은 소급 변경하지 않는다.

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   canSelectDifficulty, createGame, DIFFICULTIES, DifficultyError, getDifficulty,
-  restartGame, RULES, selectDifficulty, startGame, togglePause, updateGame,
+  nextAttempt, restartGame, RULES, selectDifficulty, startGame, togglePause, updateGame,
 } from '../src/model.js';
 
 const playing = () => startGame(createGame());
@@ -33,8 +33,8 @@ test('difficulty defaults are fresh and definitions cannot be changed', () => {
   assert.equal(createGame().pendingDifficulty, 'normal');
 });
 
-test('every difficulty can change only pending in title/won/lost; playing/paused lock in the model', () => {
-  for (const status of ['title', 'won', 'lost', 'playing', 'paused']) {
+test('every difficulty can change only pending in title/won/lost; playing/paused/retry lock in the model', () => {
+  for (const status of ['title', 'won', 'lost', 'playing', 'paused', 'retry']) {
     for (const value of Object.keys(DIFFICULTIES)) {
       const game = { ...playing(), status };
       const before = structuredClone(game);
@@ -55,6 +55,7 @@ test('start and both result restarts apply pending and reset everything else wit
       advance(old, 0.073, { left: true, fire: true });
       old.status = status;
       old.score = 20;
+      old.lives = status === 'lost' ? 0 : 1;
       const selected = selectDifficulty(old, value);
       const before = structuredClone(selected);
       const next = status === 'title' ? startGame(selected) : restartGame(selected);
@@ -66,7 +67,7 @@ test('start and both result restarts apply pending and reset everything else wit
       assert.notEqual(next.bullets, selected.bullets);
     }
   }
-  for (const status of ['playing', 'paused']) {
+  for (const status of ['playing', 'paused', 'retry']) {
     const game = { ...startGame(selectDifficulty(createGame(), 'hard')), status };
     assert.equal(startGame(game), game);
     assert.equal(restartGame(game), game);
@@ -107,7 +108,7 @@ test('invalid difficulty values fail explicitly in every selection state and bef
   const invalid = ['', 'unknown', 'NORMAL', 'toString', '__proto__', null, undefined, 32, {}, [], NaN];
   for (const value of invalid) {
     assert.throws(() => getDifficulty(value), DifficultyError);
-    for (const status of ['title', 'won', 'lost', 'playing', 'paused']) {
+    for (const status of ['title', 'won', 'lost', 'playing', 'paused', 'retry']) {
       const game = { ...playing(), status };
       const before = structuredClone(game);
       assert.throws(() => selectDifficulty(game, value), DifficultyError);
@@ -116,6 +117,10 @@ test('invalid difficulty values fail explicitly in every selection state and bef
       const frozen = structuredClone(broken);
       assert.throws(() => updateGame(broken, 0.1, { right: true, fire: true }), RangeError);
       assert.deepEqual(broken, frozen);
+      if (status === 'retry') {
+        assert.throws(() => nextAttempt(broken), DifficultyError);
+        assert.deepEqual(broken, frozen);
+      }
     }
     for (const status of ['title', 'won', 'lost']) {
       const game = { ...playing(), status, pendingDifficulty: value };
@@ -159,6 +164,7 @@ test('title is stationary and starting creates a clean playing model once', () =
   assert.deepEqual(title, before);
   const game = startGame(title);
   assert.equal(game.status, 'playing');
+  assert.equal(game.lives, 3);
   assert.deepEqual(game.player, { x: 380, y: 550 });
   assert.equal(game.elapsed, 0);
   assert.equal(game.fireCooldown, 0);
@@ -340,49 +346,69 @@ test('small time steps detect moving bullets without tunneling through enemies',
 });
 
 test('last enemy collision wins before simultaneous defense-line arrival', () => {
-  const game = playing();
-  game.enemies = [{ x: 759.5, y: 472 }];
-  game.bullets = [{ x: 778, y: 504 }];
-  game.score = 230;
-  updateGame(game, 0.1);
-  assert.equal(game.status, 'won');
-  assert.equal(game.score, 240);
-  assert.equal(game.enemies.length, 0);
-  assert.equal(game.bullets.length, 0);
-  near(game.elapsed, 1 / 120);
+  for (const lives of [3, 2, 1]) {
+    const game = playing();
+    game.lives = lives;
+    game.enemies = [{ x: 759.5, y: 472 }];
+    game.bullets = [{ x: 778, y: 504 }];
+    game.score = 230;
+    updateGame(game, 0.1);
+    assert.equal(game.status, 'won');
+    assert.equal(game.lives, lives);
+    assert.equal(game.score, 240);
+    assert.equal(game.enemies.length, 0);
+    assert.equal(game.bullets.length, 0);
+    near(game.elapsed, 1 / 120);
+  }
 });
 
-test('a surviving defense-line enemy loses after collision scoring', () => {
-  const game = playing();
-  game.enemies = [{ x: 100, y: 496 }, { x: 300, y: 496 }];
-  game.bullets = [{ x: 110, y: 500 }];
-  updateGame(game, 0);
-  assert.equal(game.score, 10);
-  assert.equal(game.enemies.length, 1);
-  assert.equal(game.status, 'lost');
+test('a surviving defense-line enemy costs one life after collision scoring, retry before final lost', () => {
+  for (const lives of [3, 2, 1]) {
+    const game = playing();
+    game.lives = lives;
+    game.enemies = [{ x: 100, y: 496 }, { x: 300, y: 496 }];
+    game.bullets = [{ x: 110, y: 500 }];
+    updateGame(game, 0);
+    assert.equal(game.score, 10);
+    assert.equal(game.enemies.length, 1);
+    assert.equal(game.lives, lives - 1);
+    assert.equal(game.status, lives > 1 ? 'retry' : 'lost');
+  }
 });
 
 test('defense-line threshold uses enemy bottom, not its top', () => {
-  const game = playing();
-  game.enemies = [{ x: 100, y: 495.999 }];
-  updateGame(game, 0);
-  assert.equal(game.status, 'playing');
-  game.enemies[0].y = 496;
-  updateGame(game, 0);
-  assert.equal(game.status, 'lost');
+  for (const lives of [3, 2, 1]) {
+    const game = playing();
+    game.lives = lives;
+    game.enemies = [{ x: 100, y: 495.999 }];
+    updateGame(game, 0);
+    assert.equal(game.status, 'playing');
+    assert.equal(game.lives, lives);
+    game.enemies[0].y = 496;
+    updateGame(game, 0);
+    assert.equal(game.status, lives > 1 ? 'retry' : 'lost');
+    assert.equal(game.lives, lives - 1);
+  }
 });
 
-test('both terminal states freeze all game fields despite movement and fire input', () => {
-  for (const outcome of ['won', 'lost']) {
+test('retry and both terminal states freeze all game fields despite movement and fire input', () => {
+  for (const outcome of ['won', 'lost', 'retry']) {
     const game = playing();
+    if (outcome === 'lost') game.lives = 1;
     game.enemies = outcome === 'won' ? [] : [{ x: 100, y: 496 }];
     game.bullets = [{ x: 398, y: 300 }];
     game.fireCooldown = 0.1;
     updateGame(game, 0);
     assert.equal(game.status, outcome);
     const frozen = structuredClone(game);
-    advance(game, 1, { right: true, fire: true });
-    assert.deepEqual(game, frozen);
+    for (const delta of [0, 0.001, 0.1, 60, 3600]) {
+      updateGame(game, delta, { right: true, fire: true });
+      assert.deepEqual(game, frozen);
+    }
+    for (const delta of [-1, NaN, Infinity]) {
+      assert.throws(() => updateGame(game, delta), RangeError);
+      assert.deepEqual(game, frozen);
+    }
   }
 });
 
@@ -390,6 +416,7 @@ test('restart from either outcome creates fresh nested state and does not reset 
   for (const status of ['won', 'lost']) {
     const game = playing();
     game.status = status;
+    game.lives = status === 'lost' ? 0 : 1;
     game.player.x = 40;
     game.enemies = [{ x: 600, y: 480 }];
     game.enemyDirection = -1;
@@ -420,7 +447,7 @@ test('pause only toggles playing and paused while preserving the same game data'
   assert.equal(startGame(paused), paused);
   assert.equal(restartGame(paused), paused);
   assert.deepEqual(togglePause(paused), before);
-  for (const status of ['title', 'won', 'lost']) {
+  for (const status of ['title', 'won', 'lost', 'retry']) {
     const inactive = { ...before, status };
     const snapshot = structuredClone(inactive);
     assert.equal(togglePause(inactive), inactive);
@@ -444,8 +471,9 @@ test('paused updates freeze every field and retain the invalid delta contract', 
 });
 
 test('pause defers collisions and defense-line decisions until resume', () => {
-  for (const hit of [false, true]) {
+  for (const [hit, lives] of [[false, 3], [false, 1], [true, 3], [true, 1]]) {
     const game = playing();
+    game.lives = lives;
     game.enemies = [{ x: 100, y: RULES.defenseY - RULES.enemyHeight }];
     game.bullets = hit ? [{ x: 110, y: RULES.defenseY - 12 }] : [];
     const paused = togglePause(game);
@@ -454,9 +482,97 @@ test('pause defers collisions and defense-line decisions until resume', () => {
     assert.deepEqual(paused, frozen);
     const resumed = togglePause(paused);
     updateGame(resumed, 0);
-    assert.equal(resumed.status, hit ? 'won' : 'lost');
+    assert.equal(resumed.status, hit ? 'won' : lives > 1 ? 'retry' : 'lost');
+    assert.equal(resumed.lives, hit ? lives : lives - 1);
     assert.equal(resumed.score, hit ? RULES.pointsPerEnemy : 0);
     assert.equal(resumed.elapsed, 0);
+  }
+});
+
+test('simultaneous arrivals cost one life through 3 to 0 and never repeat while waiting', () => {
+  let game = playing();
+  assert.equal(game.lives, 3);
+  for (const remaining of [2, 1, 0]) {
+    game.enemies = [{ x: 100, y: 496 }, { x: 300, y: 496 }, { x: 500, y: 500 }];
+    game.score = 30;
+    game.elapsed = 12;
+    game.fireCooldown = 0.07;
+    updateGame(game, 5, { right: true, fire: true });
+    assert.equal(game.status, remaining ? 'retry' : 'lost');
+    assert.equal(game.lives, remaining);
+    assert.equal(game.score, 30);
+    assert.equal(game.elapsed, 12);
+    assert.equal(game.fireCooldown, 0.07);
+    const frozen = structuredClone(game);
+    advance(game, 2, { left: true, fire: true });
+    assert.deepEqual(game, frozen);
+    const next = nextAttempt(game);
+    if (remaining) {
+      assert.equal(next.status, 'playing');
+      assert.equal(next.lives, remaining);
+      assert.equal(next.score, 0);
+      game = next;
+    } else {
+      assert.equal(next, game);
+      assert.deepEqual(restartGame(game), playing());
+    }
+  }
+});
+
+test('a simultaneous formation drop stops remaining substeps, time and extra shots', () => {
+  const game = playing();
+  game.enemies = [{ x: 759.5, y: 472 }, { x: 687.5, y: 472 }];
+  game.fireCooldown = 0.01;
+  updateGame(game, 0.1, { right: true, fire: true });
+  assert.equal(game.status, 'retry');
+  assert.equal(game.lives, 2);
+  assert.deepEqual(game.enemies.map((enemy) => enemy.y), [496, 496]);
+  near(game.elapsed, 1 / 120);
+  near(game.fireCooldown, 0.01 - 1 / 120);
+  near(game.player.x, 380 + 320 / 120);
+  assert.deepEqual(game.bullets, []);
+});
+
+test('next attempt preserves only lives/current, rebuilds nested state and resets the fire boundary', () => {
+  for (const difficulty of Object.keys(DIFFICULTIES)) {
+    for (const lives of [2, 1]) {
+      const game = startGame(selectDifficulty(createGame(), difficulty));
+      game.player = { x: 40, y: 550 };
+      game.enemies = [{ x: 600, y: 496 }];
+      game.bullets = [{ x: 58, y: 300 }];
+      game.enemyDirection = -1;
+      game.score = 230;
+      game.elapsed = 47;
+      game.fireCooldown = 0.15;
+      game.lives = lives + 1;
+      updateGame(game, 0);
+      game.pendingDifficulty = difficulty === 'hard' ? 'easy' : 'hard';
+      const frozen = structuredClone(game);
+      const next = nextAttempt(game);
+      assert.deepEqual(next, {
+        ...playing(), lives, pendingDifficulty: difficulty, currentDifficulty: difficulty,
+      });
+      assert.deepEqual(game, frozen);
+      assert.notEqual(next.player, game.player);
+      assert.notEqual(next.enemies, game.enemies);
+      assert.notEqual(next.enemies[0], game.enemies[0]);
+      assert.notEqual(next.bullets, game.bullets);
+      updateGame(next, 0, { fire: true });
+      assert.equal(next.bullets.length, 1);
+      near(next.fireCooldown, 0.2);
+      advance(next, 0.199, { fire: true });
+      assert.equal(next.bullets.length, 1);
+      updateGame(next, 0.001, { fire: true });
+      assert.equal(next.bullets.length, 2);
+      near(next.elapsed, 0.2);
+      assert.equal(next.lives, lives);
+    }
+  }
+  for (const status of ['title', 'playing', 'paused', 'won', 'lost']) {
+    const game = { ...playing(), status };
+    const before = structuredClone(game);
+    assert.equal(nextAttempt(game), game);
+    assert.deepEqual(game, before);
   }
 });
 

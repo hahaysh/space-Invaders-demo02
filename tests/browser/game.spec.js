@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+test.setTimeout(60_000);
+
 async function pixels(page, color) {
   return page.locator('canvas').evaluate((canvas, rgb) => {
     const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
@@ -47,11 +49,21 @@ async function expectFreshGame(page) {
   await expect(page.getByRole('status')).toContainText('진행 중');
   await expect(page.locator('#score')).toHaveText('0');
   await expect(page.getByRole('button', { name: '다시 시작' })).toBeHidden();
+  await expect(page.getByRole('button', { name: '다음 시도', exact: true })).toBeHidden();
   expect(await enemies(page)).toEqual({
     minX: 112, maxX: 655, minY: 72, maxY: 191, groups: 3, count: 23040,
   });
   expect((await player(page)).minX).toBe(381);
   expect((await bullets(page)).groups).toBe(0);
+}
+
+async function advanceToRetry(page) {
+  const heading = page.getByRole('heading', { name: '재도전 대기', exact: true });
+  for (let elapsed = 0; elapsed < 90_000; elapsed += 1000) {
+    await page.clock.runFor(1000);
+    if (await heading.isVisible()) break;
+  }
+  await expect(heading).toBeVisible();
 }
 
 test.beforeEach(async ({ page }) => {
@@ -61,7 +73,8 @@ test.beforeEach(async ({ page }) => {
     if (message.type() === 'error') errors.push(message.text());
   });
   page.on('close', () => expect(errors).toEqual([]));
-  await page.clock.install({ time: new Date('2026-09-14T03:00:00Z') });
+  // Pause before loading the game, with headroom for time spent between protocol calls.
+  await page.clock.install({ time: new Date('2026-09-14T02:00:00Z') });
   await page.clock.pauseAt(new Date('2026-09-14T03:00:00Z'));
   await page.goto('/');
 });
@@ -185,6 +198,7 @@ test('title has accessible instructions, ignores gameplay input and starts by bu
   await expect(page.getByRole('heading', { name: '우주 방어', exact: true })).toBeVisible();
   await expect(page.locator('#controls')).toContainText('A / D');
   await expect(page.getByRole('status')).toHaveText('시작 대기');
+  await expect(page.locator('#lives')).toHaveText('3');
   await page.keyboard.press('p');
   await expect(page.getByRole('status')).toHaveText('시작 대기');
   await expect(page.locator('#controls')).toContainText('일시정지/재개: P');
@@ -346,13 +360,24 @@ test('formation moves right, reverses with a drop, and real hits change score an
 });
 
 test('natural defeat freezes the canvas and supports repeated fresh restarts by R and button', async ({ page }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(360_000);
   await page.keyboard.press('Enter');
+  await expect(page.locator('#lives')).toHaveText('3');
   await page.clock.runFor(54_000);
   await page.keyboard.down('ArrowRight');
   await page.clock.runFor(1000);
+  for (const remaining of [2, 1]) {
+    await expect(page.getByRole('heading', { name: '재도전 대기', exact: true })).toBeVisible();
+    await expect(page.locator('#lives')).toHaveText(String(remaining));
+    await expect(page.getByLabel('다음 판 난이도', { exact: true })).toBeDisabled();
+    await page.keyboard.press('Enter');
+    await expectFreshGame(page);
+    await expect(page.locator('#lives')).toHaveText(String(remaining));
+    await page.clock.runFor(55_000);
+  }
   await expect(page.getByRole('heading', { name: '패배', exact: true })).toBeVisible();
-  await expect(page.locator('#result-description')).toHaveText('적이 방어선에 도달했습니다.');
+  await expect(page.locator('#result-description')).toHaveText('모든 목숨을 소진했습니다.');
+  await expect(page.locator('#lives')).toHaveText('0');
   await expect(page.locator('#score')).toHaveText('0');
   const frozen = await canvasImage(page);
   await page.keyboard.press('p');
@@ -372,6 +397,7 @@ test('natural defeat freezes the canvas and supports repeated fresh restarts by 
   await page.locator('canvas').focus();
   await page.keyboard.press('r');
   await expectFreshGame(page);
+  await expect(page.locator('#lives')).toHaveText('3');
   await expect(page.locator('#current-difficulty')).toHaveText('현재 판: 어려움');
   await expect(selection).toBeDisabled();
   await page.clock.runFor(100);
@@ -380,7 +406,14 @@ test('natural defeat freezes the canvas and supports repeated fresh restarts by 
   await page.keyboard.up('ArrowRight');
   await page.keyboard.up('Space');
   await page.clock.runFor(55_000);
+  for (const remaining of [2, 1]) {
+    await expect(page.locator('#lives')).toHaveText(String(remaining));
+    await page.getByRole('button', { name: '다음 시도', exact: true }).click();
+    await expectFreshGame(page);
+    await page.clock.runFor(40_000);
+  }
   await expect(page.getByRole('heading', { name: '패배', exact: true })).toBeVisible();
+  await expect(page.locator('#lives')).toHaveText('0');
   await selection.selectOption('easy');
   await expect(page.locator('#current-difficulty')).toHaveText('현재 판: 어려움');
   await page.locator('canvas').focus();
@@ -388,6 +421,7 @@ test('natural defeat freezes the canvas and supports repeated fresh restarts by 
   await expect(page.getByRole('button', { name: '다시 시작' })).toBeFocused();
   await page.getByRole('button', { name: '다시 시작' }).click();
   await expectFreshGame(page);
+  await expect(page.locator('#lives')).toHaveText('3');
   await expect(selection).toHaveValue('easy');
   await expect(page.locator('#current-difficulty')).toHaveText('현재 판: 쉬움');
   const frameClock = await observeFrameClock(page);
@@ -429,6 +463,7 @@ test('natural firing sweep wins, freezes remaining bullets, and restarts with cl
   await expect(page.getByRole('heading', { name: '승리!', exact: true })).toBeVisible();
   await expect(page.locator('#result-description')).toHaveText('모든 적을 제거했습니다.');
   await expect(page.locator('#score')).toHaveText('240');
+  await expect(page.locator('#lives')).toHaveText('3');
   expect((await enemies(page)).count).toBe(0);
   const frozen = await canvasImage(page);
   await page.keyboard.press('p');
@@ -444,6 +479,7 @@ test('natural firing sweep wins, freezes remaining bullets, and restarts with cl
   expect(await canvasImage(page)).toBe(frozen);
   await page.getByRole('button', { name: '다시 시작' }).click();
   await expectFreshGame(page);
+  await expect(page.locator('#lives')).toHaveText('3');
   await expect(page.locator('#current-difficulty')).toHaveText('현재 판: 쉬움');
   await expect(selection).toBeDisabled();
   await page.clock.runFor(100);
@@ -451,6 +487,97 @@ test('natural firing sweep wins, freezes remaining bullets, and restarts with cl
   expect((await bullets(page)).groups).toBe(0);
   await page.keyboard.up('Space');
   await page.keyboard.up('ArrowLeft');
+});
+
+test('retry freezes a scored attempt, locks inputs and selection, and starts clean via Enter and button', async ({ page }) => {
+  test.setTimeout(240_000);
+  const selection = page.getByLabel('다음 판 난이도', { exact: true });
+  await selection.selectOption('hard');
+  await page.getByRole('button', { name: '게임 시작' }).click();
+  await page.keyboard.down('Space');
+  await page.clock.runFor(1500);
+  await page.keyboard.up('Space');
+  await page.keyboard.down('ArrowRight');
+  await advanceToRetry(page);
+  for (const remaining of [2, 1]) {
+    await expect(page.getByRole('heading', { name: '재도전 대기', exact: true })).toBeVisible();
+    await expect(page.locator('#lives')).toHaveText(String(remaining));
+    const frozen = await canvasImage(page);
+    const score = await page.locator('#score').textContent();
+    if (remaining === 2) expect(Number(score)).toBeGreaterThan(0);
+    await expect(selection).toBeDisabled();
+    await expect(selection).toHaveValue('hard');
+    await expect(page.locator('#current-difficulty')).toHaveText('현재 판: 어려움');
+    await page.keyboard.press('r');
+    await page.keyboard.press('p');
+    await page.keyboard.down('Space');
+    await page.keyboard.down('a');
+    const scroll = await page.evaluate(() => window.scrollY);
+    const prevented = await page.evaluate(() => {
+      return ['Enter', 'KeyR', 'KeyP', 'ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD', 'Space', 'KeyZ'].map((code) => {
+        const event = new KeyboardEvent('keydown', { code, repeat: true, bubbles: true, cancelable: true });
+        window.dispatchEvent(event);
+        return event.defaultPrevented;
+      });
+    });
+    expect(prevented).toEqual([true, true, true, true, true, true, true, true, false]);
+    await selection.evaluate((select) => {
+      select.value = 'easy';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await expect(selection).toHaveValue('hard');
+    await page.clock.runFor(5000);
+    expect(await canvasImage(page)).toBe(frozen);
+    await expect(page.locator('#score')).toHaveText(score);
+    await expect(page.locator('#lives')).toHaveText(String(remaining));
+    expect(await page.evaluate(() => window.scrollY)).toBe(scroll);
+    await page.keyboard.press('Tab');
+    const button = page.getByRole('button', { name: '다음 시도', exact: true });
+    await expect(button).toBeFocused();
+    const repeatPrevented = await button.evaluate((element) => {
+      const event = new KeyboardEvent('keydown', { code: 'Enter', repeat: true, bubbles: true, cancelable: true });
+      element.dispatchEvent(event);
+      return event.defaultPrevented;
+    });
+    expect(repeatPrevented).toBe(true);
+    await expect(button).toBeVisible();
+    if (remaining === 2) await page.keyboard.press('Enter');
+    else await button.click();
+    await expectFreshGame(page);
+    await expect(page.locator('#lives')).toHaveText(String(remaining));
+    await expect(page.locator('#current-difficulty')).toHaveText('현재 판: 어려움');
+    await expect(selection).toBeDisabled();
+    const initial = await canvasImage(page);
+    const firstFrame = await page.evaluateHandle(() => {
+      const sample = { image: null };
+      requestAnimationFrame(() => { sample.image = document.querySelector('canvas').toDataURL(); });
+      return sample;
+    });
+    await page.clock.runFor(16);
+    expect(await firstFrame.evaluate((sample) => sample.image)).toBe(initial);
+    await firstFrame.dispose();
+    for (const key of ['ArrowRight', 'Space', 'a']) await page.keyboard.down(key);
+    await page.clock.runFor(500);
+    expect((await player(page)).minX).toBe(381);
+    expect((await bullets(page)).groups).toBe(0);
+    for (const key of ['ArrowRight', 'Space', 'a']) await page.keyboard.up(key);
+    await page.keyboard.down('ArrowLeft');
+    await page.keyboard.down('Space');
+    await page.clock.runFor(100);
+    await page.keyboard.up('ArrowLeft');
+    await page.keyboard.up('Space');
+    expect((await player(page)).minX).toBeLessThan(381);
+    expect((await bullets(page)).groups).toBe(1);
+    await page.keyboard.press('p');
+    const paused = await canvasImage(page);
+    await page.clock.runFor(500);
+    expect(await canvasImage(page)).toBe(paused);
+    await page.keyboard.press('p');
+    if (remaining === 2) {
+      await page.keyboard.down('ArrowRight');
+      await advanceToRetry(page);
+    }
+  }
 });
 
 test('P freezes the entire scene and score, ignores repeats and preserves paused input rules', async ({ page }) => {
