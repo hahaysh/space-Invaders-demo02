@@ -36,7 +36,7 @@ M1에는 적·점수·승패·재시작이 없었으며 M2에서 추가했다. �
 | 11 | 05-02 | 완료 | PRD 전체 기준과 실제 검증 증거 대조, 제품 결함·필수 검사 누락 없음; 수정/중복 suite 불필요 |
 | 12 | 06-01 | 완료 | Public/ADMIN·공개 범위 확인, Pages workflow source·github-pages의 main branch 전용 정책 API 설정/재조회 |
 | 13 | 06-02 | 완료 | 공식 SHA 고정 workflow·조건/권한 검사, Node 19/19·Chromium 8/8·build; 원격 Actions는 미실행 |
-| 14 | 06-03 | 진행 | PR 제출·실제 CI의 프레임 측정 검사 보완, 병합/공개/기록 PR 검증 전 13/20 유지 |
+| 14 | 06-03 | 진행 | PR #5 CI 복구·main 첫 공개 확인; 아래 근거 참조. 한 번의 기록 PR 병합·재공개 확인 전 13/20 유지 |
 | 15 | 07-01 | 예정 | 미실행 |
 | 16 | 07-02 | 예정 | 미실행 |
 | 17 | 08-01 | 예정 | 미실행 |
@@ -251,3 +251,10 @@ M1 발사/화면 밖 제거 검사는 M2 적과의 의도된 충돌을 피하는
 - 2026-09-14 14:00 +09:00, 고정 SHA의 `docs/06-03-PR과-첫-배포.md`를 contents API raw 전문으로 직접 읽고 base main·추적 diff·실제 결과·배포 guard를 검토했다. 지정 도구로 main 대상 PR #5를 `Related to #4`로 제출했다. 자동 이슈 종료나 병합은 하지 않는다.
 - 최초 PR run `34808118561`의 실제 E2E 실패를 읽고 이슈 #4에 즉시 보존했다. 제품/워크플로를 바꾸거나 픽셀 상한을 높이지 않고, 재시작 후 속도 검사를 실제 rAF 관찰 시간과 PRD 속도의 곱으로 비교하도록 최소 보완했다. 실패·원인 재현·로컬 재검사 근거는 TEST_RESULTS에 기록한다.
 - 수정한 같은 feature의 PR CI 완료·build 성공·artifact upload/deploy skipped 및 리뷰를 확인해 coordinator에게 인도한다. 실제 원격 단계 결과는 이슈 댓글에 보존한다. 06-03은 main 배포·실제 공개·한 번의 기록 PR 및 재배포 확인까지 남아 **진행, 누적 13/20**이다.
+
+## 06-03 첫 공개 근거와 기록 PR 인도
+
+- 2026-09-14 최신 main 기반 기록 worktree의 HEAD와 원격 main이 `8898387fd717bda6a5af5b76ec362ac631a871a0`으로 일치하고 clean임을 확인했다. 고정 안내서 06-03 전문과 원격 실제 증거를 API로 직접 읽고 README·TEST_RESULTS·이 계획만 갱신한다.
+- 앞 단계 06-01 Pages 준비·06-02 workflow는 PR #5의 [실제 CI 복구](https://github.com/hahaysh/space-Invaders-demo02/issues/4#issuecomment-5659345415), 해당 main의 [첫 배포·공개 조작 확인](https://github.com/hahaysh/space-Invaders-demo02/issues/4#issuecomment-5659428787)으로 이어졌다. 실패·복구와 실제 방법은 TEST_RESULTS의 첫 공개 요약 및 원격 댓글에 보존하며 앞 절의 당시 미실행 이력은 지우지 않는다.
+- 문서 diff 검토 → 한국어 상세 commit·정상 feature push → `Related to #4`인 main 대상 기록 PR 하나 → 실제 PR CI 완료/build 성공·upload/deploy skipped·리뷰 현황 확인 → coordinator 인도 순서다. 로컬 게임 검사·서버 기동·게임/설정 변경은 하지 않는다.
+- **06-03 진행, 누적 13/20 유지.** 기록 PR 병합은 coordinator 범위이며, 병합 후 동일 게임 코드의 공개 응답·자산·기본 시작 재확인이 남았다. 그 결과는 이슈 #4 댓글에만 남기고 추가 기록 PR을 만들지 않는다. 인간 UI 승인·직접 플레이 미확인은 유지한다.

@@ -285,3 +285,13 @@ E2E runner는 정상 종료했고 별도 수동 Playwright 페이지나 preview 
 - 14:06~14:07 +09:00, `npm run test:e2e -- --grep "natural defeat" --repeat-each=2`: **2/2**, runner 1.4분(37.7초/39.2초). 소유 dev shell `pr-fix-dev`, PID17184/부모42504의 worktree 명령행·strictPort·5173 HTTP200 확인 후 실행했다.
 - 별도 보조 탐색의 추정된 Playwright injected 디렉터리는 존재하지 않아 경로 조회가 실패했다. 그 경로를 근거로 원인을 단정하지 않고 위 실제 브라우저 clock 진단으로 확인했다.
 - 로컬 targeted 재검사와 diff 검토 후 같은 feature에 수정·기록을 보존한다. 수정된 HEAD의 원격 전체 PR CI는 이후 확인하며 결과는 이슈 댓글에 남긴다. **06-03 진행, 누적 13/20**으로 유지하고 병합 전 coordinator에게 인도한다.
+
+## 06-03 첫 공개 결과 요약과 한 번의 기록 PR
+
+2026-09-14, 최신 main `8898387fd717bda6a5af5b76ec362ac631a871a0` 기반 기록 세션에서 아래 원격 이슈 댓글을 GitHub API로 직접 읽어 반영했다. 이 세션은 문서만 변경하며 로컬 검사나 공개 플레이를 다시 실행하지 않았다. 앞 절의 미실행 표기는 각 단계 당시의 이력이다.
+
+- **CI 실패와 복구:** 최초 고정 시간 이동 assertion 실패는 제품 속도 결함이 아니라 요청 시간과 실제 rAF 간격의 차이였다. 실제 frame timestamp 기준으로 검사만 보완했고, 수정 HEAD `eb14963f6eec0b6d2965a776ca969381017d5e2b`의 PR CI는 모델 19/19·Chromium 8/8·build 성공, upload/deploy skipped였다. [최초 실패](https://github.com/hahaysh/space-Invaders-demo02/issues/4#issuecomment-5659265856)·[원인과 수정](https://github.com/hahaysh/space-Invaders-demo02/issues/4#issuecomment-5659309960)·[실제 CI 복구](https://github.com/hahaysh/space-Invaders-demo02/issues/4#issuecomment-5659345415)를 보존한다.
+- **첫 main 공개:** 2026-09-14 14:17~14:24 +09:00 확인. PR #5 병합 main 커밋은 위 `8898387`이며 [run 34809039826](https://github.com/hahaysh/space-Invaders-demo02/actions/runs/34809039826)의 build·upload·deploy 및 deployment `6430941491`이 성공했다. 실제 URL은 <https://hahaysh.github.io/space-Invaders-demo02/>이다.
+- **실제 방법:** 해당 run 아티팩트와 공개 HTML·JS·CSS·favicon 네 파일의 HTTPS 200·MIME·바이트 완전 일치를 확인했다. Playwright Chromium에서 clock 가속·모델 주입 없이 일반시간 keyboard/click과 DOM·Canvas 읽기로 제목·버튼/Enter 시작·좌우 이동·발사·적/점수·자연 승패·종료 정지·R/버튼 재시작을 확인했다. 정밀 경계의 기존 모델/controlled clock 검사와 별개인 공개 스모크 근거다. [상세 공개 증거](https://github.com/hahaysh/space-Invaders-demo02/issues/4#issuecomment-5659428787).
+- **공개 관찰 실패와 복구:** 정지 clock의 적 완전색 면적을 일반시간에 그대로 요구한 [최초 assertion 실패](https://github.com/hahaysh/space-Invaders-demo02/issues/4#issuecomment-5659399343)는 삭제하지 않는다. 읽기전용 Canvas 연결영역 검사로 적 24개와 부분픽셀 래스터화에 따른 면적 차이를 확인하고 명중 후 개체수·점수 대응으로 검증했다. 제품 실패나 제품 수정으로 기록하지 않는다. console error는 없었고 Canvas readback 성능 권고 경고 3건은 위 상세 증거에 남아 있다.
+- **남은 범위:** 사람의 직접 플레이·App UI 승인/trust/Run·지침 자동 적용·다른 OS/브라우저/모바일은 미확인이다. 사용자 위임 자동 실행을 인간 UI 행위로 간주하지 않는다. 이번 한 번의 기록 PR 병합과 동일 게임 코드의 재공개 응답·자산·기본 시작 확인 전까지 **06-03 진행, 누적 13/20**이다. 병합 뒤 결과는 이슈 #4 댓글에만 남기며 추가 기록 PR을 만들지 않는다.
