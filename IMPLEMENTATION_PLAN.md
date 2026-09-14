@@ -38,7 +38,7 @@ M1에는 적·점수·승패·재시작이 없었으며 M2에서 추가했다. �
 | 13 | 06-02 | 완료 | 공식 SHA 고정 workflow·조건/권한 검사, Node 19/19·Chromium 8/8·build; 원격 Actions는 미실행 |
 | 14 | 06-03 | 완료 | PR #6 병합 main `bda40293`·재공개 최종 확인, [이슈 #4 완료 근거](https://github.com/hahaysh/space-Invaders-demo02/issues/4#issuecomment-5659560168)에서 누적 14/20 확정 |
 | 15 | 07-01 | 완료 (문서 커밋 기준) | 아래 설계 검토·위임 승인 범위의 문서 변경. 최종 commit/push·15/20 확정은 이슈 #7 단계 댓글에 기록 |
-| 16 | 07-02 | 예정 | 미실행 |
+| 16 | 07-02 | 진행 | 승인 설계 구현·Skill 회귀·PR/CI 검토 진행, 병합·실제 재배포 확인 전 15/20 유지 |
 | 17 | 08-01 | 예정 | 미실행 |
 | 18 | 08-02 | 예정 | 미실행 |
 | 19 | 09-01 | 예정 | 미실행 |
@@ -46,7 +46,7 @@ M1에는 적·점수·승패·재시작이 없었으며 M2에서 추가했다. �
 
 앞 단계 커밋 근거는 이슈 #2와 coordinator 전달 내용이다. 이 세션에서 앞 단계를 다시 수행한 것은 아니다.
 
-현재 07-01 문서 커밋 완료 기준 누적은 **15/20**이며 07-02는 별도 지시 전까지 예정으로 유지한다. 아래 이전 실행 기록의 진행/누적 값은 당시 이력으로 보존한다.
+현재 완료 누적은 **15/20**이며 07-02는 병합·실제 재배포 확인까지 진행으로 유지한다. 아래 이전 실행 기록의 진행/누적 값은 당시 이력으로 보존한다.
 
 ## 04-01 실행 기록
 
@@ -278,3 +278,19 @@ M1 발사/화면 밖 제거 검사는 M2 적과의 의도된 충돌을 피하는
 ideation은 첫 공개 대상·재미, AGENTS는 작업 규칙이 바뀌지 않아 그대로 보존한다. TEST_RESULTS는 새 실행 결과가 없으므로 변경하지 않는다. 코드·테스트·`.github`·manifest/lock 수정, 설치·서버·브라우저 실행·PR 생성·병합·배포는 이번 단계에서 수행하지 않는다.
 
 이번 문서 검토는 게임 기능 검증이 아니다. P 동작·모델 시간 경계·실제 브라우저 입력/DOM/Canvas·build·재배포는 미실행이다. 사람 직접 플레이·다른 OS/브라우저·실제 OS 탭 전환·AGENTS/Skill 자동 적용·App trust/Run UI는 계속 미확인이며 이전 안전 정책 거부를 우회하지 않는다. 커밋 후 결과는 원격 댓글에 기록하고 기록용 추가 커밋/PR을 만들지 않는다.
+
+## 07-02 구현 전 계획 검토
+
+- 2026-09-14 14:55~14:57 +09:00, 같은 feature의 HEAD `7300acc21ff09a2d6b11fac46b96f06ab5572e95`·clean을 확인했다. 고정 SHA `3637e1ad7897a2e674aa85cb8f3f6154da4b3907`의 `docs/07-02-일시정지-구현과-재배포.md`를 GitHub contents raw API로 직접 전문 읽고 이슈 #7 전체 댓글·승인 문서·기존 모델/UI/검사를 대조했다.
+- 첫 액션인 실제 `functions.skill({ skill: "game-check" })` 응답은 `Skill "game-check" loaded successfully. Follow the instructions in the skill context.`였다. 제공된 Base directory는 현재 격리 worktree의 `.github\skills\game-check`다. 단순 파일 읽기나 무요청 자동 적용이 아니라 명시적 호출/로드 성공이다.
+- 순서: 순수 모델 전환 → 기존 입력·시계·DOM 표시와 README → Node 상태/시간 경계 및 실제 P/DOM/Canvas·기존 전체 회귀 → build·소유 preview 루트/하위 경로 → 결과·diff 검토 → 한국어 상세 커밋·정상 feature push·main PR → 실제 PR CI 완료·diff/리뷰 검토 → coordinator 인도.
+- 새 상태 전환은 한 판의 데이터와 기존 playing 갱신 경계를 재사용한다. 반복 입력 재유입 방지, 전환 시 키 비움/시계 초기화, 단일 rAF 유지 외 구조 변경은 하지 않는다. 공통 수치·.github·manifest/lock·ideation·AGENTS는 보존한다.
+- 사용자 위임은 위 구현·검증·PR 제출까지이며 인간 UI 승인으로 기록하지 않는다. 병합은 coordinator 범위다. 공개 확인 전 **07-02 진행, 15/20**이며 후속 공개 결과는 이슈 댓글에만 남기고 추가 기록 PR을 만들지 않는다.
+
+### 07-02 로컬 구현·검증 및 PR 인도
+
+- 기존 모델에 status만 전환하는 `togglePause`를 추가하고 playing 전용 update 경계는 보존했다. UI는 P repeat 무시·입력 비움·재개 시계 기준 초기화·DOM 안내만 연결하며 기존 루프/시작/결과를 유지한다. paused 이동/Space 기본 동작은 막고 입력은 저장하지 않는다.
+- 실제 Skill 호출 뒤 Node **23/23**, Chromium 전체 **11/11**, build 성공, 일반시간 preview 루트·하위 경로의 실제 P/DOM/Canvas·자산 MIME/바이트 일치를 확인했다. 최초 Vite 미설치 실패와 이후 공개 registry 설치·복구, 정확한 시간/수치·소유 자원 종료·미확인은 TEST_RESULTS의 07-02 절을 따른다.
+- README P를 현재 코드 조작으로 갱신하고 기존 공개 URL은 보존했다. PRD/TRD/TEST_PLAN의 구현 예정 표현은 현재 구현/검증 경로와 이력으로 구분했다. 공통 수치·.github·manifest/lock·ideation·AGENTS는 변경하지 않았다.
+- 로컬 결과와 전체 diff를 검토한 뒤 한국어 상세 커밋·정상 feature push·원격 SHA 일치/clean 확인 → main 대상 기능 PR에 `Fixes #7` 연결 → 실제 PR CI 완료/build 성공·upload/deploy skipped와 diff/리뷰를 확인해 coordinator에게 인도한다. 최종 commit/PR/run 링크는 이슈 #7에 기록하며 자기 SHA 기록만 위한 반복 커밋은 하지 않는다.
+- 병합·실제 공개 확인 전 **07-02 진행, 15/20**을 유지한다. 이번 유일 작성자 세션은 PR 검토 인도 후 정지하고 coordinator의 병합/공개 확인 지시를 기다린다.

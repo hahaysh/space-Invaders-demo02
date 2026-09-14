@@ -1,6 +1,6 @@
 # 우주 방어 제품 요구사항
 
-`ideation.md`의 첫 배포 경험을 제품 기준으로 정의한다. 첫 공개 이후 [이슈 #7](https://github.com/hahaysh/space-Invaders-demo02/issues/7)에서 일시정지를 추가한다. 아래 변경은 07-01 승인 설계이며 구현·검증은 07-02에서 수행한다. 공통 수치와 기존 게임 규칙은 보존한다.
+`ideation.md`의 첫 배포 경험을 제품 기준으로 정의한다. 첫 공개 이후 [이슈 #7](https://github.com/hahaysh/space-Invaders-demo02/issues/7)에서 일시정지를 추가한다. 07-01 승인 설계를 07-02에서 구현하며 실제 검증·공개 상태는 TEST_RESULTS와 이슈 댓글에서 구분한다. 공통 수치와 기존 게임 규칙은 보존한다.
 
 ## 공통 수치
 

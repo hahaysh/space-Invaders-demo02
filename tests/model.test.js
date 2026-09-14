@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createGame, restartGame, RULES, startGame, updateGame } from '../src/model.js';
+import { createGame, restartGame, RULES, startGame, togglePause, updateGame } from '../src/model.js';
 
 const playing = () => startGame(createGame());
 const firingLane = () => {
@@ -269,4 +269,89 @@ test('restart from either outcome creates fresh nested state and does not reset 
     assert.notEqual(restarted.bullets, game.bullets);
   }
   for (const game of [createGame(), playing()]) assert.equal(restartGame(game), game);
+});
+
+test('pause only toggles playing and paused while preserving the same game data', () => {
+  const game = firingLane();
+  advance(game, 0.07, { right: true, fire: true });
+  game.score = 10;
+  game.enemyDirection = -1;
+  const before = structuredClone(game);
+  const paused = togglePause(game);
+  assert.deepEqual(paused, { ...before, status: 'paused' });
+  assert.equal(paused.player, game.player);
+  assert.equal(paused.enemies, game.enemies);
+  assert.equal(paused.bullets, game.bullets);
+  assert.equal(startGame(paused), paused);
+  assert.equal(restartGame(paused), paused);
+  assert.deepEqual(togglePause(paused), before);
+  for (const status of ['title', 'won', 'lost']) {
+    const inactive = { ...before, status };
+    const snapshot = structuredClone(inactive);
+    assert.equal(togglePause(inactive), inactive);
+    assert.deepEqual(inactive, snapshot);
+  }
+});
+
+test('paused updates freeze every field and retain the invalid delta contract', () => {
+  const game = firingLane();
+  advance(game, 0.07, { right: true, fire: true });
+  const paused = togglePause(game);
+  const frozen = structuredClone(paused);
+  for (const delta of [0, 0.001, 0.1, 60, 3600]) {
+    updateGame(paused, delta, { left: true, right: true, fire: true });
+    assert.deepEqual(paused, frozen);
+  }
+  for (const delta of [-1, NaN, Infinity]) {
+    assert.throws(() => updateGame(paused, delta), RangeError);
+    assert.deepEqual(paused, frozen);
+  }
+});
+
+test('pause defers collisions and defense-line decisions until resume', () => {
+  for (const hit of [false, true]) {
+    const game = playing();
+    game.enemies = [{ x: 100, y: RULES.defenseY - RULES.enemyHeight }];
+    game.bullets = hit ? [{ x: 110, y: RULES.defenseY - 12 }] : [];
+    const paused = togglePause(game);
+    const frozen = structuredClone(paused);
+    updateGame(paused, 20, { fire: true });
+    assert.deepEqual(paused, frozen);
+    const resumed = togglePause(paused);
+    updateGame(resumed, 0);
+    assert.equal(resumed.status, hit ? 'won' : 'lost');
+    assert.equal(resumed.score, hit ? RULES.pointsPerEnemy : 0);
+    assert.equal(resumed.elapsed, 0);
+  }
+});
+
+test('resume preserves remaining cooldown at its boundary and excludes all paused time', () => {
+  let game = firingLane();
+  advance(game, 0.07, { right: true, fire: true });
+  const control = structuredClone(game);
+  const remaining = game.fireCooldown;
+  near(remaining, RULES.fireInterval - 0.07);
+  for (let cycle = 0; cycle < 5; cycle++) {
+    game = togglePause(game);
+    updateGame(game, 300, { right: true, fire: true });
+    game = togglePause(game);
+    assert.deepEqual(game, control);
+  }
+  updateGame(game, 0);
+  assert.deepEqual(game, control);
+  advance(game, remaining - 0.001, { right: true, fire: true });
+  advance(control, remaining - 0.001, { right: true, fire: true });
+  assert.equal(game.bullets.length, 1);
+  near(game.fireCooldown, 0.001);
+  updateGame(game, 0.001, { right: true, fire: true });
+  updateGame(control, 0.001, { right: true, fire: true });
+  assert.equal(game.bullets.length, 2);
+  near(game.fireCooldown, RULES.fireInterval);
+  near(game.elapsed, RULES.fireInterval);
+  assert.deepEqual(game, control);
+  for (const dt of [0.016, 0.023, 0.081, 0.1]) {
+    updateGame(game, dt, { left: true, fire: true });
+    updateGame(control, dt, { left: true, fire: true });
+    assert.deepEqual(game, control);
+  }
 });
