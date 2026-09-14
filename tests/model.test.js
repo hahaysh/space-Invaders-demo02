@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createGame, restartGame, RULES, startGame, togglePause, updateGame } from '../src/model.js';
+import {
+  canSelectDifficulty, createGame, DIFFICULTIES, DifficultyError, getDifficulty,
+  restartGame, RULES, selectDifficulty, startGame, togglePause, updateGame,
+} from '../src/model.js';
 
 const playing = () => startGame(createGame());
 const firingLane = () => {
@@ -16,6 +19,138 @@ const advance = (game, seconds, input) => {
     seconds -= dt;
   }
 };
+
+test('difficulty defaults are fresh and definitions cannot be changed', () => {
+  assert.equal(createGame().pendingDifficulty, 'normal');
+  assert.equal(createGame().currentDifficulty, 'normal');
+  assert.deepEqual(Object.keys(DIFFICULTIES), ['easy', 'normal', 'hard']);
+  for (const [value, speed] of [['easy', 32], ['normal', 64], ['hard', 96]]) {
+    assert.equal(getDifficulty(value).speed, speed);
+    assert.ok(Object.isFrozen(DIFFICULTIES[value]));
+  }
+  assert.ok(Object.isFrozen(DIFFICULTIES));
+  selectDifficulty(createGame(), 'hard');
+  assert.equal(createGame().pendingDifficulty, 'normal');
+});
+
+test('every difficulty can change only pending in title/won/lost; playing/paused lock in the model', () => {
+  for (const status of ['title', 'won', 'lost', 'playing', 'paused']) {
+    for (const value of Object.keys(DIFFICULTIES)) {
+      const game = { ...playing(), status };
+      const before = structuredClone(game);
+      const allowed = ['title', 'won', 'lost'].includes(status);
+      assert.equal(canSelectDifficulty(game), allowed);
+      const selected = selectDifficulty(game, value);
+      assert.deepEqual(game, before);
+      assert.deepEqual(selected, { ...before, pendingDifficulty: allowed ? value : 'normal' });
+      if (!allowed) assert.equal(selected, game);
+    }
+  }
+});
+
+test('start and both result restarts apply pending and reset everything else without changing the old round', () => {
+  for (const value of Object.keys(DIFFICULTIES)) {
+    for (const status of ['title', 'won', 'lost']) {
+      const old = playing();
+      advance(old, 0.073, { left: true, fire: true });
+      old.status = status;
+      old.score = 20;
+      const selected = selectDifficulty(old, value);
+      const before = structuredClone(selected);
+      const next = status === 'title' ? startGame(selected) : restartGame(selected);
+      assert.deepEqual(next, { ...playing(), pendingDifficulty: value, currentDifficulty: value });
+      assert.deepEqual(selected, before);
+      assert.equal(selected.currentDifficulty, 'normal');
+      assert.notEqual(next.enemies, selected.enemies);
+      assert.notEqual(next.player, selected.player);
+      assert.notEqual(next.bullets, selected.bullets);
+    }
+  }
+  for (const status of ['playing', 'paused']) {
+    const game = { ...startGame(selectDifficulty(createGame(), 'hard')), status };
+    assert.equal(startGame(game), game);
+    assert.equal(restartGame(game), game);
+  }
+});
+
+for (const [value, speed] of [['easy', 32], ['normal', 64], ['hard', 96]]) {
+  test(`${value} moves at ${speed} px/s with exact activation time, both edges and remaining travel`, () => {
+    const game = startGame(selectDifficulty(createGame(), value));
+    const time = 0.473;
+    advance(game, time);
+    near(game.elapsed, time);
+    near(game.enemies[0].x, 112 + speed * time);
+    assert.equal(game.enemies.length, 24);
+    assert.equal(game.score, 0);
+    advance(game, 144 / speed - time);
+    near(game.enemies[7].x, 760);
+    assert.equal(game.enemyDirection, -1);
+    assert.equal(game.enemies[0].y, 96);
+    advance(game, 256 / speed);
+    near(game.enemies[0].x, 0);
+    assert.equal(game.enemyDirection, 1);
+    assert.equal(game.enemies[0].y, 120);
+    game.enemies = [{ x: 759.9, y: 72 }];
+    updateGame(game, 0.1);
+    near(game.enemies[0].x, 760 - (speed * 0.1 - 0.1));
+    assert.equal(game.enemies[0].y, 96);
+    assert.equal(game.enemyDirection, -1);
+    game.enemies[0].x = 0.1;
+    updateGame(game, 0.1);
+    near(game.enemies[0].x, speed * 0.1 - 0.1);
+    assert.equal(game.enemies[0].y, 120);
+    assert.equal(game.enemyDirection, 1);
+  });
+}
+
+test('invalid difficulty values fail explicitly in every selection state and before any round mutation', () => {
+  const invalid = ['', 'unknown', 'NORMAL', 'toString', '__proto__', null, undefined, 32, {}, [], NaN];
+  for (const value of invalid) {
+    assert.throws(() => getDifficulty(value), DifficultyError);
+    for (const status of ['title', 'won', 'lost', 'playing', 'paused']) {
+      const game = { ...playing(), status };
+      const before = structuredClone(game);
+      assert.throws(() => selectDifficulty(game, value), DifficultyError);
+      assert.deepEqual(game, before);
+      const broken = { ...game, currentDifficulty: value };
+      const frozen = structuredClone(broken);
+      assert.throws(() => updateGame(broken, 0.1, { right: true, fire: true }), RangeError);
+      assert.deepEqual(broken, frozen);
+    }
+    for (const status of ['title', 'won', 'lost']) {
+      const game = { ...playing(), status, pendingDifficulty: value };
+      const before = structuredClone(game);
+      assert.throws(() => status === 'title' ? startGame(game) : restartGame(game), DifficultyError);
+      assert.deepEqual(game, before);
+    }
+  }
+});
+
+test('all difficulties retain settings and exact cooldown across repeated pauses', () => {
+  for (const value of Object.keys(DIFFICULTIES)) {
+    let game = startGame(selectDifficulty(createGame(), value));
+    game.enemies = [{ x: 0, y: 0 }];
+    advance(game, 0.07, { right: true, fire: true });
+    const control = structuredClone(game);
+    for (let cycle = 0; cycle < 3; cycle++) {
+      game = togglePause(game);
+      const frozen = structuredClone(game);
+      assert.equal(selectDifficulty(game, value === 'hard' ? 'easy' : 'hard'), game);
+      updateGame(game, 300, { right: true, fire: true });
+      assert.deepEqual(game, frozen);
+      game = togglePause(game);
+      assert.deepEqual(game, control);
+    }
+    const remaining = game.fireCooldown;
+    advance(game, remaining - 0.001, { fire: true });
+    assert.equal(game.bullets.length, 1);
+    updateGame(game, 0.001, { fire: true });
+    assert.equal(game.bullets.length, 2);
+    advance(control, remaining - 0.001, { fire: true });
+    updateGame(control, 0.001, { fire: true });
+    assert.deepEqual(game, control);
+  }
+});
 
 test('title is stationary and starting creates a clean playing model once', () => {
   const title = createGame();

@@ -66,6 +66,119 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
 });
 
+test('native select owns arrows, Space and Enter, then Tab reaches the start button', async ({ page }) => {
+  const selection = page.getByLabel('다음 판 난이도', { exact: true });
+  await expect(selection).toHaveValue('normal');
+  await expect(page.locator('#current-difficulty')).toHaveText('현재 판: 시작 전');
+  await page.keyboard.press('Tab');
+  await expect(selection).toBeFocused();
+  await page.keyboard.press('ArrowUp');
+  await expect(selection).toHaveValue('easy');
+  await page.keyboard.press('ArrowDown');
+  await expect(selection).toHaveValue('normal');
+  await page.keyboard.press('Space');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await expect(selection).toHaveValue('hard');
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowRight');
+  await page.clock.runFor(1000);
+  await expect(page.getByRole('status')).toHaveText('시작 대기');
+  expect((await player(page)).count).toBe(0);
+  expect((await bullets(page)).count).toBe(0);
+  const prevented = await selection.evaluate((select) => {
+    return ['keydown', 'keyup'].flatMap((type) =>
+      ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Enter', 'KeyR', 'KeyP'].map((code) => {
+        const event = new KeyboardEvent(type, { code, bubbles: true, cancelable: true });
+        select.dispatchEvent(event);
+        return event.defaultPrevented;
+      }));
+  });
+  expect(prevented).toEqual(Array(16).fill(false));
+  const selected = await selection.inputValue();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: '게임 시작' })).toBeFocused();
+  await page.keyboard.press('Space');
+  await expectFreshGame(page);
+  await expect(selection).toHaveValue(selected);
+  await expect(selection).toBeDisabled();
+});
+
+for (const [value, label, speed] of [['easy', '쉬움', 32], ['normal', '보통', 64], ['hard', '어려움', 96]]) {
+  test(`${value} selection drives Canvas speed, locks through P and resets on reload`, async ({ page }) => {
+    const selection = page.getByLabel('다음 판 난이도', { exact: true });
+    await selection.selectOption(value);
+    await expect(page.locator('#current-difficulty')).toHaveText('현재 판: 시작 전');
+    await page.getByRole('button', { name: '게임 시작' }).click();
+    await expect(selection).toBeDisabled();
+    await expect(page.locator('#current-difficulty')).toHaveText(`현재 판: ${label}`);
+    const frameClock = await observeFrameClock(page);
+    try {
+      for (let cycle = 0; cycle < 2; cycle++) {
+        await page.clock.runFor(32);
+        const before = await enemies(page);
+        const start = await frameClock.evaluate((sample) => sample.time);
+        await page.clock.runFor(200);
+        const end = await frameClock.evaluate((sample) => sample.time);
+        const travel = (await enemies(page)).minX - before.minX;
+        const expected = speed * (end - start) / 1000;
+        expect(travel).toBeGreaterThanOrEqual(Math.floor(expected));
+        expect(travel).toBeLessThanOrEqual(Math.ceil(expected));
+        // This synthetic change probes the model guard independently of disabled UI.
+        await selection.evaluate((select, attempted) => {
+          select.value = attempted;
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+        }, value === 'hard' ? 'easy' : 'hard');
+        await expect(selection).toHaveValue(value);
+        await page.keyboard.press('p');
+        await expect(selection).toBeDisabled();
+        const frozen = await canvasImage(page);
+        await selection.evaluate((select, attempted) => {
+          select.value = attempted;
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+        }, value === 'hard' ? 'easy' : 'hard');
+        await expect(selection).toHaveValue(value);
+        await page.keyboard.press('ArrowRight');
+        await page.keyboard.press('Space');
+        await page.clock.runFor(1000);
+        expect(await canvasImage(page)).toBe(frozen);
+        await expect(page.locator('#current-difficulty')).toHaveText(`현재 판: ${label}`);
+        await page.keyboard.press('p');
+      }
+    } finally {
+      await frameClock.evaluate((sample) => cancelAnimationFrame(sample.request));
+      await frameClock.dispose();
+    }
+    await page.reload();
+    await expect(selection).toHaveValue('normal');
+    await expect(selection).toBeEnabled();
+    await expect(page.locator('#current-difficulty')).toHaveText('현재 판: 시작 전');
+    await expect(page.getByRole('status')).toHaveText('시작 대기');
+  });
+}
+
+test('invalid select changes show an explicit error and preserve selection and scene until corrected', async ({ page }) => {
+  const selection = page.getByLabel('다음 판 난이도', { exact: true });
+  await selection.selectOption('hard');
+  const frozen = await canvasImage(page);
+  await selection.evaluate((select) => {
+    select.add(new Option('invalid test option', 'invalid'));
+    select.value = 'invalid';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    select.querySelector('option[value="invalid"]').remove();
+  });
+  await expect(page.getByRole('alert')).toContainText('난이도가 올바르지 않습니다.');
+  await expect(selection).toHaveValue('hard');
+  await expect(page.locator('#current-difficulty')).toHaveText('현재 판: 시작 전');
+  await page.clock.runFor(500);
+  expect(await canvasImage(page)).toBe(frozen);
+  await expect(page.getByRole('alert')).toBeVisible();
+  await selection.selectOption('easy');
+  await expect(page.getByRole('alert')).toBeHidden();
+  await page.getByRole('button', { name: '게임 시작' }).click();
+  await expect(page.locator('#current-difficulty')).toHaveText('현재 판: 쉬움');
+});
+
 test('title has accessible instructions, ignores gameplay input and starts by button', async ({ page, request }) => {
   await expect(page).toHaveTitle('우주 방어');
   expect((await request.get('/favicon.svg')).status()).toBe(200);
@@ -198,6 +311,8 @@ test('repeat Enter is ignored and only current game keys prevent browser default
   expect(await dispatch('KeyA')).toBe(false);
   expect(await dispatch('KeyZ')).toBe(false);
   await page.keyboard.press('Tab');
+  await expect(page.getByLabel('다음 판 난이도', { exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
   await expect(page.getByRole('button', { name: '게임 시작' })).toBeFocused();
   await page.keyboard.press('Enter');
   for (const code of ['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD', 'Space']) {
@@ -249,8 +364,16 @@ test('natural defeat freezes the canvas and supports repeated fresh restarts by 
     code: 'KeyR', repeat: true, bubbles: true, cancelable: true,
   })));
   await expect(page.getByRole('heading', { name: '패배', exact: true })).toBeVisible();
+  const selection = page.getByLabel('다음 판 난이도', { exact: true });
+  await expect(selection).toBeEnabled();
+  await selection.selectOption('hard');
+  await expect(page.locator('#current-difficulty')).toHaveText('현재 판: 보통');
+  expect(await canvasImage(page)).toBe(frozen);
+  await page.locator('canvas').focus();
   await page.keyboard.press('r');
   await expectFreshGame(page);
+  await expect(page.locator('#current-difficulty')).toHaveText('현재 판: 어려움');
+  await expect(selection).toBeDisabled();
   await page.clock.runFor(100);
   expect((await player(page)).minX).toBe(381);
   expect((await bullets(page)).groups).toBe(0);
@@ -258,10 +381,15 @@ test('natural defeat freezes the canvas and supports repeated fresh restarts by 
   await page.keyboard.up('Space');
   await page.clock.runFor(55_000);
   await expect(page.getByRole('heading', { name: '패배', exact: true })).toBeVisible();
+  await selection.selectOption('easy');
+  await expect(page.locator('#current-difficulty')).toHaveText('현재 판: 어려움');
+  await page.locator('canvas').focus();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('button', { name: '다시 시작' })).toBeFocused();
   await page.getByRole('button', { name: '다시 시작' }).click();
   await expectFreshGame(page);
+  await expect(selection).toHaveValue('easy');
+  await expect(page.locator('#current-difficulty')).toHaveText('현재 판: 쉬움');
   const frameClock = await observeFrameClock(page);
   try {
     await page.clock.runFor(32);
@@ -309,8 +437,15 @@ test('natural firing sweep wins, freezes remaining bullets, and restarts with cl
   await page.clock.runFor(2000);
   expect(await canvasImage(page)).toBe(frozen);
   await expect(page.locator('#score')).toHaveText('240');
+  const selection = page.getByLabel('다음 판 난이도', { exact: true });
+  await expect(selection).toBeEnabled();
+  await selection.selectOption('easy');
+  await expect(page.locator('#current-difficulty')).toHaveText('현재 판: 보통');
+  expect(await canvasImage(page)).toBe(frozen);
   await page.getByRole('button', { name: '다시 시작' }).click();
   await expectFreshGame(page);
+  await expect(page.locator('#current-difficulty')).toHaveText('현재 판: 쉬움');
+  await expect(selection).toBeDisabled();
   await page.clock.runFor(100);
   expect((await player(page)).minX).toBe(381);
   expect((await bullets(page)).groups).toBe(0);

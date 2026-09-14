@@ -1,3 +1,23 @@
+export const DIFFICULTIES = Object.freeze({
+  easy: Object.freeze({ label: '쉬움', speed: 32 }),
+  normal: Object.freeze({ label: '보통', speed: 64 }),
+  hard: Object.freeze({ label: '어려움', speed: 96 }),
+});
+
+export class DifficultyError extends RangeError {
+  constructor() {
+    super('난이도가 올바르지 않습니다. 쉬움, 보통, 어려움 중에서 선택해 주세요.');
+    this.name = 'DifficultyError';
+  }
+}
+
+export function getDifficulty(value) {
+  if (typeof value !== 'string' || !Object.hasOwn(DIFFICULTIES, value)) {
+    throw new DifficultyError();
+  }
+  return DIFFICULTIES[value];
+}
+
 export const RULES = Object.freeze({
   width: 800,
   height: 600,
@@ -18,7 +38,6 @@ export const RULES = Object.freeze({
   enemyY: 72,
   enemyGapX: 72,
   enemyGapY: 48,
-  enemySpeed: 64,
   enemyDrop: 24,
   pointsPerEnemy: 10,
   defenseY: 520,
@@ -29,6 +48,8 @@ export const RULES = Object.freeze({
 export function createGame() {
   return {
     status: 'title',
+    pendingDifficulty: 'normal',
+    currentDifficulty: 'normal',
     player: { x: RULES.playerX, y: RULES.playerY },
     bullets: [],
     enemies: Array.from({ length: RULES.enemyRows * RULES.enemyColumns }, (_, index) => ({
@@ -43,7 +64,26 @@ export function createGame() {
 }
 
 export function startGame(game) {
-  return game.status === 'title' ? { ...createGame(), status: 'playing' } : game;
+  return game.status === 'title' ? newRound(game.pendingDifficulty) : game;
+}
+
+function newRound(difficulty) {
+  getDifficulty(difficulty);
+  return {
+    ...createGame(),
+    status: 'playing',
+    pendingDifficulty: difficulty,
+    currentDifficulty: difficulty,
+  };
+}
+
+export function canSelectDifficulty(game) {
+  return game.status === 'title' || isFinished(game);
+}
+
+export function selectDifficulty(game, difficulty) {
+  getDifficulty(difficulty);
+  return canSelectDifficulty(game) ? { ...game, pendingDifficulty: difficulty } : game;
 }
 
 export function isFinished(game) {
@@ -51,7 +91,7 @@ export function isFinished(game) {
 }
 
 export function restartGame(game) {
-  return isFinished(game) ? startGame(createGame()) : game;
+  return isFinished(game) ? newRound(game.pendingDifficulty) : game;
 }
 
 export function togglePause(game) {
@@ -59,11 +99,11 @@ export function togglePause(game) {
   return { ...game, status: game.status === 'playing' ? 'paused' : 'playing' };
 }
 
-function moveEnemies(game, dt) {
+function moveEnemies(game, dt, speed) {
   const left = Math.min(...game.enemies.map((enemy) => enemy.x));
   const right = Math.max(...game.enemies.map((enemy) => enemy.x + RULES.enemyWidth));
   const available = Math.max(0, game.enemyDirection === 1 ? RULES.width - right : left);
-  const distance = RULES.enemySpeed * dt;
+  const distance = speed * dt;
   const travel = Math.min(distance, available);
   for (const enemy of game.enemies) enemy.x += game.enemyDirection * travel;
   if (available <= distance + 1e-9) {
@@ -107,6 +147,7 @@ export function updateGame(game, delta, input = {}) {
   if (!Number.isFinite(delta) || delta < 0) {
     throw new RangeError('delta must be a finite, non-negative number of seconds');
   }
+  const { speed } = getDifficulty(game.currentDifficulty);
   if (game.status !== 'playing') return;
 
   resolveCombat(game);
@@ -124,7 +165,7 @@ export function updateGame(game, delta, input = {}) {
     ));
     for (const bullet of game.bullets) bullet.y -= RULES.bulletSpeed * dt;
     game.bullets = game.bullets.filter((bullet) => bullet.y + RULES.bulletHeight > 0);
-    moveEnemies(game, dt);
+    moveEnemies(game, dt, speed);
     game.fireCooldown = Math.max(0, game.fireCooldown - dt);
     game.elapsed += dt;
     resolveCombat(game);

@@ -1,4 +1,7 @@
-import { createGame, isFinished, restartGame, RULES, startGame, togglePause, updateGame } from './model.js';
+import {
+  canSelectDifficulty, createGame, DIFFICULTIES, DifficultyError, getDifficulty,
+  isFinished, restartGame, RULES, selectDifficulty, startGame, togglePause, updateGame,
+} from './model.js';
 
 const canvas = document.querySelector('#game');
 const context = canvas.getContext('2d');
@@ -10,6 +13,9 @@ const resultDescription = document.querySelector('#result-description');
 const restartButton = document.querySelector('#restart');
 const score = document.querySelector('#score');
 const status = document.querySelector('#status');
+const difficultySelect = document.querySelector('#difficulty');
+const currentDifficulty = document.querySelector('#current-difficulty');
+const difficultyError = document.querySelector('#difficulty-error');
 const keys = new Set();
 const movementKeys = new Set(['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD', 'Space']);
 let game = createGame();
@@ -25,6 +31,31 @@ function clearInput() {
   keys.clear();
 }
 
+for (const [value, { label }] of Object.entries(DIFFICULTIES)) {
+  difficultySelect.add(new Option(label, value));
+}
+
+function syncDifficulty() {
+  difficultySelect.value = game.pendingDifficulty;
+  difficultySelect.disabled = !canSelectDifficulty(game);
+  currentDifficulty.textContent = game.status === 'title'
+    ? '현재 판: 시작 전'
+    : `현재 판: ${getDifficulty(game.currentDifficulty).label}`;
+}
+
+function withDifficultyError(action) {
+  try {
+    action();
+    difficultyError.textContent = '';
+    difficultyError.hidden = true;
+  } catch (error) {
+    if (!(error instanceof DifficultyError)) throw error;
+    difficultyError.textContent = error.message;
+    difficultyError.hidden = false;
+    syncDifficulty();
+  }
+}
+
 function enterGame(next) {
   if (next === game) return;
   game = next;
@@ -34,19 +65,27 @@ function enterGame(next) {
   resultScreen.hidden = true;
   status.textContent = '진행 중 · 적 편대를 막아 주세요.';
   score.textContent = String(game.score);
+  syncDifficulty();
   canvas.focus({ preventScroll: true });
   draw();
 }
 
-startButton.addEventListener('click', () => enterGame(startGame(game)));
-restartButton.addEventListener('click', () => enterGame(restartGame(game)));
+const start = () => withDifficultyError(() => enterGame(startGame(game)));
+const restart = () => withDifficultyError(() => enterGame(restartGame(game)));
+startButton.addEventListener('click', start);
+restartButton.addEventListener('click', restart);
+difficultySelect.addEventListener('change', () => withDifficultyError(() => {
+  game = selectDifficulty(game, difficultySelect.value);
+  syncDifficulty();
+}));
 window.addEventListener('keydown', (event) => {
+  if (event.target === difficultySelect) return;
   if (game.status === 'title' && event.code === 'Enter') {
     event.preventDefault();
-    if (!event.repeat) enterGame(startGame(game));
+    if (!event.repeat) start();
   } else if (isFinished(game) && event.code === 'KeyR') {
     event.preventDefault();
-    if (!event.repeat) enterGame(restartGame(game));
+    if (!event.repeat) restart();
   } else if ((game.status === 'playing' || game.status === 'paused') && event.code === 'KeyP') {
     event.preventDefault();
     if (!event.repeat) {
@@ -56,6 +95,7 @@ window.addEventListener('keydown', (event) => {
       status.textContent = game.status === 'paused'
         ? '일시정지 · P로 재개하세요.'
         : '진행 중 · 적 편대를 막아 주세요.';
+      syncDifficulty();
       draw();
     }
   } else if ((game.status === 'playing' || game.status === 'paused') && movementKeys.has(event.code)) {
@@ -64,7 +104,8 @@ window.addEventListener('keydown', (event) => {
   }
 });
 window.addEventListener('keyup', (event) => {
-  if ((game.status === 'playing' || game.status === 'paused') && movementKeys.has(event.code)) {
+  if (event.target !== difficultySelect &&
+      (game.status === 'playing' || game.status === 'paused') && movementKeys.has(event.code)) {
     event.preventDefault();
   }
   keys.delete(event.code);
@@ -124,11 +165,13 @@ function frame(time) {
     resultDescription.textContent = won ? '모든 적을 제거했습니다.' : '적이 방어선에 도달했습니다.';
     status.textContent = won ? '승리 · 모든 적 제거' : '패배 · 방어선 도달';
     resultScreen.hidden = false;
+    syncDifficulty();
     canvas.focus({ preventScroll: true });
   }
   draw();
   requestAnimationFrame(frame);
 }
 
+syncDifficulty();
 draw();
 requestAnimationFrame(frame);

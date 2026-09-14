@@ -14,6 +14,13 @@
         <h1>우주 방어</h1>
         <p id="controls">이동: ← → 또는 A / D · 발사: Space 길게 누르기 · 일시정지/재개: P</p>
         <p>점수: <span id="score">0</span></p>
+        <div class="difficulty-settings">
+          <label for="difficulty">다음 판 난이도</label>
+          <select id="difficulty" aria-describedby="difficulty-hint"></select>
+          <span id="current-difficulty">현재 판: 시작 전</span>
+        </div>
+        <p id="difficulty-hint" class="hint">시작·재시작 때 적용됩니다. 진행·일시정지 중에는 변경할 수 없습니다.</p>
+        <p id="difficulty-error" role="alert" hidden></p>
       </header>
       <section class="game" aria-label="우주 방어 게임">
         <canvas id="game" width="800" height="600" tabindex="-1"
@@ -24,7 +31,7 @@
           <h2>출격 준비</h2>
           <p>모든 적을 제거하고 방어선을 지켜 주세요.</p>
           <button id="start" type="button">게임 시작</button>
-          <p class="hint">Enter로도 시작할 수 있습니다.</p>
+          <p class="hint">난이도 선택 중이 아니면 Enter로도 시작할 수 있습니다.</p>
         </div>
         <div id="result-screen" class="overlay" hidden>
           <h2 id="result-title"></h2>

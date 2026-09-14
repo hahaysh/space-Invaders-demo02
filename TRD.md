@@ -29,17 +29,17 @@ blur/visibilitychange에서 입력만 비우고 상태를 자동 일시정지·�
 
 제품 완료 조건은 PRD R08~R12, 모델 시간 경계와 실제 입력·DOM·Canvas 확인 경로는 TEST_PLAN을 따른다. 실제 실행 결과는 TEST_RESULTS에 기록한다.
 
-## 난이도 선택 설계 (08-01 위임 승인, 08-02 구현 전)
+## 난이도 선택 설계 (08-01 위임 승인, 08-02 구현)
 
 - 모델에 `pendingDifficulty`와 `currentDifficulty`를 분리한다. 허용 식별자는 `easy`/`normal`/`hard`이며 속도 정의는 PRD 공통 수치표를 따른다. 페이지 최초 `createGame`은 두 값을 보통으로 초기화한다. title의 current는 초기 설정이지 진행한 판의 증거가 아니다. 저장소·쿠키·URL로 설정을 저장하거나 복원하지 않는다.
-- 선택 전용 모델 진입점은 값을 먼저 검증한다. 허용 집합 밖의 값(빈 값·알 수 없는 문자열·null·undefined·다른 타입 포함)은 `RangeError`로 명시하고 기존 상태를 변경하지 않는다. 유효한 선택도 title/won/lost에서만 pending에 반영한다. playing/paused의 유효한 변경 요청은 기존 모델을 그대로 반환하는 잠금 계약이며 UI 비활성화만으로 대신하지 않는다.
+- 선택 전용 모델 진입점은 값을 먼저 검증한다. 허용 집합 밖의 값(빈 값·알 수 없는 문자열·null·undefined·다른 타입 포함)은 `RangeError` 하위 `DifficultyError`로 명시하고 기존 상태를 변경하지 않는다. 유효한 선택도 title/won/lost에서만 pending에 반영한다. playing/paused의 유효한 변경 요청은 기존 모델을 그대로 반환하는 잠금 계약이며 UI 비활성화만으로 대신하지 않는다.
 - `startGame`/`restartGame`의 기존 상태 조건을 유지한다. 허용된 시작/재시작에서는 pending을 검증한 후 새 판의 pending/current에 함께 적용하고 기존 게임 초기화·입력 비움·시계 재설정을 수행한다. 유효하지 않은 설정으로 새 판을 만들거나 `||`/`??` 등으로 보통을 대신 넣지 않는다. 잘못된 상태에서의 시작/재시작은 기존 무변경 계약을 유지한다.
 - `moveEnemies`는 `RULES.enemySpeed` 고정 참조 대신 검증된 current의 속도 정의를 사용한다. 수평 이동·가장자리 잔여 이동에 같은 값을 적용하고 하강·충돌·승패·점수·시간 분할은 보존한다. 모델 경계에서 current 유효성을 확인한 뒤 갱신하며 잘못된 값이면 부분 진행 없이 오류를 낸다. pending 변경은 현재 판의 데이터·속도를 바꾸지 않는다. `togglePause`는 두 설정을 포함한 기존 한 판을 그대로 보존한다.
-- UI는 덮개 밖에 레이블과 연결된 기본 HTML select 하나를 두고 pending을 표시한다. title/won/lost에서는 활성, playing/paused에서는 native `disabled`로 잠근다. current는 별도의 읽을 수 있는 DOM 문구로 구분한다. 상태 전환 때 select 값·잠금·현재 설정을 모델에서 동기화하며 이벤트·rAF를 추가 생성하지 않는다.
+- UI는 덮개 밖에 레이블과 연결된 기본 HTML select 하나를 두고 pending을 표시한다. title/won/lost에서는 활성, playing/paused에서는 native `disabled`로 잠근다. current는 별도의 읽을 수 있는 DOM 문구로 구분한다. 최초 렌더링 전과 선택·상태 전환 때 select 값·잠금·현재 설정을 모델에서 동기화하며 매 프레임 값을 덮어쓰거나 이벤트·rAF를 추가 생성하지 않는다.
 - select에서 온 keydown/keyup은 게임 분기와 `preventDefault`보다 먼저 제외한다. 키 해제의 내부 입력 정리는 유지하되 native 화살표/Space/Enter 조작을 방해하지 않고 Enter를 게임 시작으로 해석하지 않는다. select를 벗어난 버튼의 기본 Enter/Space 활성화와 기존 게임 키/P는 보존한다.
 - UI의 선택·시작/재시작 경계에서 예상한 난이도 검증 오류만 처리해 별도 DOM 오류 안내(`role="alert"`)로 노출한다. 실패한 UI 값은 모델의 기존 pending과 다시 맞추되 오류를 숨기거나 설정을 기본값으로 바꾸지 않는다. 다른 예외를 포괄적으로 삼키지 않는다. 게임 상태 문구가 매 프레임 오류 안내를 덮어쓰지 않게 한다.
 
-제품 계약은 PRD R13~R16, 검증 경로는 TEST_PLAN의 08-02 절을 따른다. 이 절은 구현 완료나 실제 브라우저 확인을 의미하지 않는다.
+제품 계약은 PRD R13~R16, 검증 경로는 TEST_PLAN의 08-02 절을 따른다. 실제 모델·브라우저 결과와 실패/복구는 TEST_RESULTS에 기록하며 이 설계 자체를 실행 증거로 사용하지 않는다.
 
 ## 검증
 
