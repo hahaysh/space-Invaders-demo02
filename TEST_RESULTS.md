@@ -270,3 +270,18 @@ E2E runner는 정상 종료했고 별도 수동 Playwright 페이지나 preview 
 **06-02 완료, 누적 13/20.** pages.yml·IMPLEMENTATION_PLAN·TEST_RESULTS만 변경했다. 기존 github-app/Skill·게임·tests·manifest/lock은 그대로다.
 원격 Actions의 설치·Linux E2E와 프로세스 정리·업로드·배포·환경 승인 및 실제 공개 URL은 **미실행/미확인**이다. 로컬 검증을 CI 통과로 기록하지 않는다. 인간 UI 승인·무요청 자동 적용 등의 기존 미확인도 유지한다.
 검토 후 한국어 상세 commit·정상 feature push·원격 HEAD 확인 및 이슈 #4 보고만 수행하고 멈춘다. PR 생성·병합·workflow_dispatch·배포는 다음 06-03이므로 아직 실행하지 않는다.
+
+## 06-03 최초 PR CI 실패와 최소 보완
+
+고정 안내서 06-03을 raw API 전문으로 읽고 공개 전 검토 후 PR #5를 main 대상으로 제출했다. `Related to #4` 연결이며 이슈 자동 종료·PR 병합·배포는 하지 않았다.
+기존 로컬 결과와 다음 원격 실패는 실행 환경·시점이 다른 실제 기록으로 모두 보존한다.
+
+- 최초 HEAD `7a3abfa1c9d85deb45a51cc24b936767bd6efc3a`의 [PR run 34808118561](https://github.com/hahaysh/space-Invaders-demo02/actions/runs/34808118561)은 실제로 **실패**했다. `gh run watch --exit-status`, `gh run view --log-failed`, jobs API로 완료와 원인을 확인했다.
+- checkout/Node/npm ci/Chromium 준비/모델 검사는 성공했다. E2E는 **7 통과·1 실패**, 42.3초: 자연 패배·반복 재시작 검사의 마지막 이동 단언에서 expected minX ≤416, actual 417이었다. build job은 1분 15초 후 실패, static build·Pages artifact upload·deploy는 skipped였다.
+- 시작 직후 curl 연결 실패는 retry 뒤 정상 서버/E2E로 이어진 준비 과정이며 위 assertion 실패 원인이 아니다. 서버 로그와 실제 실패를 분리했다. [즉시 실패 기록](https://github.com/hahaysh/space-Invaders-demo02/issues/4#issuecomment-5659265856).
+- 원인 확인: `node --input-type=module`의 별도 Chromium clock 진단에서 100ms 요청 8회의 실제 rAF timestamp 간격이 **[96,96,96,112,96,96,96,112]ms**임을 재현했다. 112ms의 PRD 속도 이동은 35.84px이므로 초기 채움 픽셀 381에서 417은 프레임 경계에 따라 정상 관찰 가능하다. 진단은 게임 상태가 없는 별도 페이지에서 수행하고 browser를 finally로 종료했다.
+- 최소 보완은 `tests/browser/game.spec.js`의 해당 이동 구간뿐이다. 실제 key 입력·Canvas 위치 비교는 유지하고 rAF timestamp만 관찰하는 JSHandle을 추가했다. 관찰한 경과 시간 × PRD 속도와 픽셀 이동을 floor/ceil 범위로 비교한다. 기존 상한을 올리거나 실패 기대값을 삭제하지 않았으며 중복 속도/루프는 계속 실패한다.
+- 관찰 객체는 전역 게임 모델이 아니며 앱 상태를 읽거나 쓰지 않는다. observer는 finally에서 cancel/dispose한다. 게임 코드·PRD 수치·workflow·권한·환경 보호는 변경하지 않았다.
+- 14:06~14:07 +09:00, `npm run test:e2e -- --grep "natural defeat" --repeat-each=2`: **2/2**, runner 1.4분(37.7초/39.2초). 소유 dev shell `pr-fix-dev`, PID17184/부모42504의 worktree 명령행·strictPort·5173 HTTP200 확인 후 실행했다.
+- 별도 보조 탐색의 추정된 Playwright injected 디렉터리는 존재하지 않아 경로 조회가 실패했다. 그 경로를 근거로 원인을 단정하지 않고 위 실제 브라우저 clock 진단으로 확인했다.
+- 로컬 targeted 재검사와 diff 검토 후 같은 feature에 수정·기록을 보존한다. 수정된 HEAD의 원격 전체 PR CI는 이후 확인하며 결과는 이슈 댓글에 남긴다. **06-03 진행, 누적 13/20**으로 유지하고 병합 전 coordinator에게 인도한다.
