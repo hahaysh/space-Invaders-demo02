@@ -101,4 +101,5 @@ blur 및 비표시 처리는 브라우저 이벤트를 합성하고 `document.hi
 - 미구현: M2의 적·점수·충돌·승패·재시작, M3의 README/App 설정. `.github`, PR·병합·배포 작업은 하지 않았다.
 - 미확인: 사람 직접 플레이·App UI 직접 승인/모드 전환·App 지침 자동 적용, 실제 OS 탭 비표시 전환, 다른 브라우저/OS, preview 명령 실행.
 - 다음은 coordinator의 별도 04-02 전달을 기다린다. 현재 기본 게임 이슈 전체를 완료한 것은 아니다.
-- 검토 후 한국어 커밋과 정상 feature push만 수행한다. 실제 SHA·원격 결과·이슈 #2 댓글 링크는 원격 실행 후 기록한다.
+- 원격 기록: 2026-09-14, 구현 커밋 `705303d13f6dfe3776ebc090be979ccbd2618940`을 작성한 뒤 `git push --set-upstream origin hahaysh-space-defense-basic-game` 성공. `git ls-remote --heads origin hahaysh-space-defense-basic-game`으로 동일 SHA를 확인했다. 강제 push, main 변경, PR 생성은 하지 않았다.
+- 이 원격 결과 기록은 별도 문서 커밋으로 남긴다. 그 최종 HEAD와 검증·미확인·다음 단계는 이슈 #2 댓글 및 coordinator 완료 보고에 기록한다.
