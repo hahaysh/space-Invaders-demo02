@@ -3,7 +3,8 @@
 좌우로 이동하며 적 편대를 제거하고 방어선을 지키는 데스크톱 브라우저 게임입니다.
 HTML/CSS·ES Modules·Canvas 2D로 구현했으며 외부 이미지나 CDN 없이 실행합니다.
 
-**공개 URL: 배포 예정.** 현재는 로컬에서 실행하는 기본 게임이며, 코드 PR 병합과 배포는 별도 단계입니다.
+**공개 URL: <https://hahaysh.github.io/space-Invaders-demo02/>**
+2026-09-14 첫 공개의 응답·자산·자동 브라우저 조작을 확인했습니다. 사람의 직접 플레이와 UI 승인은 미확인이며, [실제 공개 근거](https://github.com/hahaysh/space-Invaders-demo02/issues/4#issuecomment-5659428787)와 [결과 요약](TEST_RESULTS.md)을 구분해 기록합니다.
 
 ## 준비와 설치
 
