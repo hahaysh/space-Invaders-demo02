@@ -36,8 +36,8 @@ M1에는 적·점수·승패·재시작이 없었으며 M2에서 추가했다. �
 | 11 | 05-02 | 완료 | PRD 전체 기준과 실제 검증 증거 대조, 제품 결함·필수 검사 누락 없음; 수정/중복 suite 불필요 |
 | 12 | 06-01 | 완료 | Public/ADMIN·공개 범위 확인, Pages workflow source·github-pages의 main branch 전용 정책 API 설정/재조회 |
 | 13 | 06-02 | 완료 | 공식 SHA 고정 workflow·조건/권한 검사, Node 19/19·Chromium 8/8·build; 원격 Actions는 미실행 |
-| 14 | 06-03 | 진행 | PR #5 CI 복구·main 첫 공개 확인; 아래 근거 참조. 한 번의 기록 PR 병합·재공개 확인 전 13/20 유지 |
-| 15 | 07-01 | 예정 | 미실행 |
+| 14 | 06-03 | 완료 | PR #6 병합 main `bda40293`·재공개 최종 확인, [이슈 #4 완료 근거](https://github.com/hahaysh/space-Invaders-demo02/issues/4#issuecomment-5659560168)에서 누적 14/20 확정 |
+| 15 | 07-01 | 완료 (문서 커밋 기준) | 아래 설계 검토·위임 승인 범위의 문서 변경. 최종 commit/push·15/20 확정은 이슈 #7 단계 댓글에 기록 |
 | 16 | 07-02 | 예정 | 미실행 |
 | 17 | 08-01 | 예정 | 미실행 |
 | 18 | 08-02 | 예정 | 미실행 |
@@ -45,6 +45,8 @@ M1에는 적·점수·승패·재시작이 없었으며 M2에서 추가했다. �
 | 20 | 09-02 | 예정 | 미실행 |
 
 앞 단계 커밋 근거는 이슈 #2와 coordinator 전달 내용이다. 이 세션에서 앞 단계를 다시 수행한 것은 아니다.
+
+현재 07-01 문서 커밋 완료 기준 누적은 **15/20**이며 07-02는 별도 지시 전까지 예정으로 유지한다. 아래 이전 실행 기록의 진행/누적 값은 당시 이력으로 보존한다.
 
 ## 04-01 실행 기록
 
@@ -258,3 +260,21 @@ M1 발사/화면 밖 제거 검사는 M2 적과의 의도된 충돌을 피하는
 - 앞 단계 06-01 Pages 준비·06-02 workflow는 PR #5의 [실제 CI 복구](https://github.com/hahaysh/space-Invaders-demo02/issues/4#issuecomment-5659345415), 해당 main의 [첫 배포·공개 조작 확인](https://github.com/hahaysh/space-Invaders-demo02/issues/4#issuecomment-5659428787)으로 이어졌다. 실패·복구와 실제 방법은 TEST_RESULTS의 첫 공개 요약 및 원격 댓글에 보존하며 앞 절의 당시 미실행 이력은 지우지 않는다.
 - 문서 diff 검토 → 한국어 상세 commit·정상 feature push → `Related to #4`인 main 대상 기록 PR 하나 → 실제 PR CI 완료/build 성공·upload/deploy skipped·리뷰 현황 확인 → coordinator 인도 순서다. 로컬 게임 검사·서버 기동·게임/설정 변경은 하지 않는다.
 - **06-03 진행, 누적 13/20 유지.** 기록 PR 병합은 coordinator 범위이며, 병합 후 동일 게임 코드의 공개 응답·자산·기본 시작 재확인이 남았다. 그 결과는 이슈 #4 댓글에만 남기고 추가 기록 PR을 만들지 않는다. 인간 UI 승인·직접 플레이 미확인은 유지한다.
+
+## 07-01 일시정지 설계 검토 및 위임 승인
+
+- 2026-09-14 +09:00, 이슈 #7 본문·전체 댓글(진입 당시 없음), AGENTS·ideation·PRD·TRD·TEST_PLAN·계획·README와 현재 모델/UI/HTML/CSS·package scripts·기존 검사 항목을 읽었다. 이전 공개 이슈 #4 댓글 `5659560168`을 직접 읽어 **06-03 완료, 14/20**을 진행표에 반영했다. 이전 공개 검증을 이번 세션이 다시 실행한 것은 아니다.
+- 실제 격리 worktree 디렉터리는 `hahaysh-issue-7-f8d58f`이다. `git fetch origin main` 후 시작 HEAD·origin/main·merge-base·원격 main을 각각 확인했고 모두 `bda40293c959bb6af8c01147b105ebd17f2930ab`이며 clean이었다. 파일 수정 전에 App 도구로 `hahaysh-issue-7-f8d58f`를 `hahaysh-space-defense-pause`로 변경했다.
+- 고정 안내서 [07-01 원문](https://github.com/hahaysh/space-Invaders/blob/3637e1ad7897a2e674aa85cb8f3f6154da4b3907/docs/07-01-일시정지-요청과-설계.md)을 GitHub contents raw API (`Accept: application/vnd.github.raw+json`, 같은 SHA의 `ref`)로 직접 전문 읽었다. main checkout·demo01·원본 sample에 접근하지 않았으며 다른 worker/factory를 사용하지 않았다.
+- 검토 순서: 최신 main·직전 공개 근거 확인 → 현행 playing 전용 모델 갱신·단일 rAF·입력 경계 대조 → PRD R08~R12 및 TRD 책임·TEST_PLAN 관찰 조건 검토 → 사용자 위임 승인으로 아래 문서만 갱신 → 문서 diff·기존 파일 보존 검토 → 한국어 상세 문서 커밋·정상 feature push·원격 동일/clean 확인 → 이슈 #7 단계 댓글 및 coordinator 보고 후 정지.
+- 승인은 전달된 사용자 위임에 근거한다. 사람이 App Plan/Interactive UI를 직접 승인·전환했거나 설정 trust/Run을 확인했다고 기록하지 않는다. 새 세션 제공 목록에서 `game-check`를 발견하고 저장소 파일 존재를 확인했지만 실제 호출은 07-02 별도 지시 때 수행한다. 파일 발견은 Skill 호출·자동 적용의 증거가 아니다.
+
+| 단계 | 변경 범위·검토 결론 | 완료 기준 |
+|---|---|---|
+| 07-01 문서만 | PRD에 새 상태·P·동결/재개 수용 기준, TRD에 기존 모델·입력·시계·단일 루프 책임, TEST_PLAN에 모델 경계와 실제 입력/DOM/Canvas 회귀 경로 | 공통 수치·기존 게임 규칙 보존, 정지 덮개만으로 완료 처리하지 않음 |
+| 07-01 연결·진행 기록 | README 실제 공개 URL·직전 공개 근거 보존 및 P는 구현 예정으로 구분, 이 계획의 06-03 완료와 07-01 기록 | 검토한 다섯 문서만 커밋하고 최종 SHA/원격 동일/clean·15/20을 이슈 #7 댓글에 확정 |
+| 07-02 별도 지시 후 | 고정 SHA의 07-02 원문 직접 읽기, Skill 실제 호출·최소 코드/검사 구현·검증·PR/CI/리뷰·정상 병합·실제 재배포 | 이번에는 미착수, 완료 수에 포함하지 않음 |
+
+ideation은 첫 공개 대상·재미, AGENTS는 작업 규칙이 바뀌지 않아 그대로 보존한다. TEST_RESULTS는 새 실행 결과가 없으므로 변경하지 않는다. 코드·테스트·`.github`·manifest/lock 수정, 설치·서버·브라우저 실행·PR 생성·병합·배포는 이번 단계에서 수행하지 않는다.
+
+이번 문서 검토는 게임 기능 검증이 아니다. P 동작·모델 시간 경계·실제 브라우저 입력/DOM/Canvas·build·재배포는 미실행이다. 사람 직접 플레이·다른 OS/브라우저·실제 OS 탭 전환·AGENTS/Skill 자동 적용·App trust/Run UI는 계속 미확인이며 이전 안전 정책 거부를 우회하지 않는다. 커밋 후 결과는 원격 댓글에 기록하고 기록용 추가 커밋/PR을 만들지 않는다.

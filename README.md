@@ -5,6 +5,7 @@ HTML/CSS·ES Modules·Canvas 2D로 구현했으며 외부 이미지나 CDN 없�
 
 **공개 URL: <https://hahaysh.github.io/space-Invaders-demo02/>**
 2026-09-14 첫 공개의 응답·자산·자동 브라우저 조작을 확인했습니다. 사람의 직접 플레이와 UI 승인은 미확인이며, [실제 공개 근거](https://github.com/hahaysh/space-Invaders-demo02/issues/4#issuecomment-5659428787)와 [결과 요약](TEST_RESULTS.md)을 구분해 기록합니다.
+기록 PR #6 병합 후 동일 게임의 [직전 공개 최종 확인·06-03 완료 근거](https://github.com/hahaysh/space-Invaders-demo02/issues/4#issuecomment-5659560168)를 이어받습니다.
 
 ## 준비와 설치
 
@@ -51,7 +52,8 @@ npm run dev
 진행 중 Enter/R은 게임을 초기화하지 않습니다.
 
 포커스를 잃거나 페이지가 비표시되면 누른 키를 비웁니다. 자동 일시정지는 하지 않습니다.
-일시정지·난이도 선택·목숨·적 공격·모바일 터치 조작·사운드는 현재 범위에 없습니다.
+현재 구현·공개 버전에는 일시정지가 없습니다. [이슈 #7](https://github.com/hahaysh/space-Invaders-demo02/issues/7)의 07-01에서 **진행 중 P로 일시정지, 다시 P로 재개**하는 설계를 승인했으며 구현·검증·재배포는 07-02에서 진행할 예정입니다. 아직 사용할 수 있는 조작으로 안내하지 않습니다.
+난이도 선택·목숨·적 공격·모바일 터치 조작·사운드는 이번 변경 범위에 없습니다.
 정확한 수치와 판정 우선순위는 [PRD](PRD.md)를 참조하세요.
 
 ## 검사
