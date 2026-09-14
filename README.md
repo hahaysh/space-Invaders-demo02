@@ -7,6 +7,7 @@ HTML/CSS·ES Modules·Canvas 2D로 구현했으며 외부 이미지나 CDN 없�
 2026-09-14 첫 공개의 응답·자산·자동 브라우저 조작을 확인했습니다. 사람의 직접 플레이와 UI 승인은 미확인이며, [실제 공개 근거](https://github.com/hahaysh/space-Invaders-demo02/issues/4#issuecomment-5659428787)와 [결과 요약](TEST_RESULTS.md)을 구분해 기록합니다.
 기록 PR #6 병합 후 동일 게임의 [직전 공개 최종 확인·06-03 완료 근거](https://github.com/hahaysh/space-Invaders-demo02/issues/4#issuecomment-5659560168)를 이어받습니다.
 이후 일시정지 PR #8의 main 배포와 실제 공개 P 조작은 [07-02 완료·직전 공개 근거](https://github.com/hahaysh/space-Invaders-demo02/issues/7#issuecomment-5659849823)로 확인되었습니다. 이번 문서 단계에서 공개 검사를 다시 실행한 것은 아닙니다.
+난이도 PR #10의 main 배포·공개 자산 일치·실제 선택/잠금/P 조작은 [08-02 완료·최신 공개 근거](https://github.com/hahaysh/space-Invaders-demo02/issues/9#issuecomment-5660296207)에 보존되어 있습니다. 아래 조작은 현재 구현 기준이며, 목숨·재도전은 아직 문서 설계만 완료했습니다.
 
 ## 준비와 설치
 
@@ -71,8 +72,9 @@ P는 진행 중/일시정지에서만 동작하며 시작·승리·패배 화면
 
 포커스를 잃거나 페이지가 비표시되면 누른 키를 비웁니다. 자동 일시정지는 하지 않습니다.
 위 P 조작은 [이슈 #7](https://github.com/hahaysh/space-Invaders-demo02/issues/7)에서 구현·공개되었습니다.
-[이슈 #9](https://github.com/hahaysh/space-Invaders-demo02/issues/9)의 난이도 선택은 이번 코드에 구현했습니다. 실제 공개 재배포 확인은 병합 뒤 해당 이슈 댓글에 기록하며, 위 직전 공개 근거를 난이도 공개 증거로 사용하지 않습니다.
-목숨·적 공격·모바일 터치 조작·사운드는 이번 변경 범위에 없습니다.
+[이슈 #9](https://github.com/hahaysh/space-Invaders-demo02/issues/9)의 난이도 선택은 구현·공개되었으며 실제 공개 결과는 위 08-02 근거를 따릅니다.
+[이슈 #11](https://github.com/hahaysh/space-Invaders-demo02/issues/11)의 목숨·재도전은 09-01 위임 승인 문서 단계입니다. [PRD R17~R20](PRD.md)에 기존 즉시 패배를 대체할 기준을 정의했지만, 코드와 위 조작은 아직 바뀌지 않았습니다. 다음 시도 조작·목숨 표시는 09-02 구현 시 이 안내와 함께 갱신합니다.
+적 공격·모바일 터치 조작·사운드는 계속 범위 밖입니다.
 정확한 수치와 판정 우선순위는 [PRD](PRD.md)를 참조하세요.
 
 ## 검사
