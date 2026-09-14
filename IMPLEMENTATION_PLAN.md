@@ -34,7 +34,7 @@ M1에는 적·점수·승패·재시작이 없었으며 M2에서 추가했다. �
 | 9 | 04-03 | 완료 | PR #3 정상 병합 `4c416e85`, 이슈 #2 완료 댓글과 원격 main 확인 |
 | 10 | 05-01 | 완료 | 동일 feature HEAD의 새 읽기/검사 세션에서 Skill 실제 발견·호출 및 검증 성공, 아래 복구 근거 참조 |
 | 11 | 05-02 | 완료 | PRD 전체 기준과 실제 검증 증거 대조, 제품 결함·필수 검사 누락 없음; 수정/중복 suite 불필요 |
-| 12 | 06-01 | 예정 | 미실행 |
+| 12 | 06-01 | 완료 | Public/ADMIN·공개 범위 확인, Pages workflow source·github-pages의 main branch 전용 정책 API 설정/재조회 |
 | 13 | 06-02 | 예정 | 미실행 |
 | 14 | 06-03 | 예정 | 미실행 |
 | 15 | 07-01 | 예정 | 미실행 |
@@ -224,3 +224,14 @@ M1 발사/화면 밖 제거 검사는 M2 적과의 의도된 충돌을 피하는
 - 대조 결과는 TEST_RESULTS의 05-02 절에 기록했다. 필수 기능의 확인 근거가 모두 있고 배포 준비를 막는 제품 결함·검사 누락은 발견되지 않았다. 최초 Vite 미설치와 Skill 미발견은 복구된 실행 환경/도구 발견 문제로 구분했다.
 - 검사 대상 `2cace6da` 이후 현재까지 게임·tests·manifest/lock·Skill·빌드 설정의 변경은 없으며 기록 문서 두 개만 바뀌었다. 따라서 안내서의 통과 경로를 적용해 코드 수정·가상 버그·추가 이슈·중복 suite·Skill 재호출·서버 재시작 없이 기존 실제 근거를 검토했다.
 - **05-02 완료, 누적 11/20**. 이번 변경은 TEST_RESULTS와 이 계획뿐이다. 관련 diff·기록 일치 확인 후 한국어 상세 커밋·정상 feature push·원격 확인 및 이슈 #4 댓글로 인계한다. 공개 배포 완료가 아니며 이슈를 닫지 않는다. 06-01/06-02/06-03·Pages·workflow·PR·병합은 시작하지 않고 보고 후 멈춘다.
+
+## 06-01 공개 범위와 Pages 준비
+
+- 2026-09-14 13:37~13:38 +09:00, 같은 격리 세션/feature의 HEAD `f79cdef0bc5dfdbf3edd49837fda36efe7b933f7`와 원격 일치·clean을 확인했다. 고정 SHA `3637e1ad7897a2e674aa85cb8f3f6154da4b3907`의 `docs/06-01-Pages-배포-준비.md`를 contents API raw 전문으로 직접 읽고 사용자 위임 범위를 검토했다.
+- 계획: demo02 Public/ADMIN·현재 추적 파일 공개 범위·Vite 상대 base/dist 확인 → 기존 Pages/환경/보호 규칙 조회 → `github-pages`의 selected custom branch 정책에 type `branch`, name `main`만 허용 → Pages source `workflow` 설정 → API 재조회·결과 기록·diff 검토·정상 feature commit/push 후 정지.
+- API에서 demo02가 Public·admin=true, Pages 조회 404, `github-pages` 조회 404 및 전체 환경 0개를 확인했다. 기존 reviewer·wait·기타 보호 규칙은 존재하지 않는다. 설정 직전 상태를 다시 확인하고 다른 값이나 기존 보호가 생겼으면 덮어쓰지 않는다. `protected_branches: true`로 main-only를 대체하지 않으며 tags·다른 브랜치 정책을 추가하지 않는다.
+- 현재 추적 22개 파일의 검토·패턴 검사, `base: './'`, 기존 dist의 상대 경로 및 하위 경로 실행 근거는 TEST_RESULTS에 기록한다. Pages는 dist만 배포할 준비이며 실제 아티팩트 업로드/workflow 작성은 후속 단계다.
+- 사용자 위임 API 실행과 인간 GitHub/App UI 승인을 구분한다. 권한 부족이나 기존 보호 승인 필요가 확인되면 완화하지 않고 중단·보고한다. 이번에는 06-01만 수행하며 workflow 파일·PR·배포·공개 확인은 실행하지 않는다.
+- 결과: 새 `github-pages` 환경의 `protected_branches: false`, `custom_branch_policies: true` 및 정책 한 개 `name: main`, `type: branch`를 API 설정 후 재조회했다. Pages는 `build_type: workflow`로 생성·재조회했다. 기존 환경이 없었으므로 reviewer/wait/보호 규칙을 제거하거나 완화하지 않았다.
+- 13:40 최종 API 검사는 위 설정 일치·등록 workflow 0·deployment 0을 확인했다. API의 html_url은 설정 주소이며 공개 게임 정상 동작의 증거가 아니다. 상세 요청·응답·미확인은 TEST_RESULTS에 기록한다.
+- **06-01 완료, 누적 12/20**. 기록 두 파일만 검토·한국어 상세 commit·정상 feature push 후 이슈 #4 및 coordinator에 보고하고 멈춘다. 06-02 workflow 작성·06-03 PR/병합/배포는 아직 실행하지 않는다.

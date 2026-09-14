@@ -148,3 +148,57 @@ blur/hidden·일부 repeat/defaultPrevented는 합성 이벤트이며 전역 모
 - 기존 실제 통과 근거가 현재 코드에 유효하므로 안내서에 따라 **불필요한 코드 수정·가상 결함·추가 설치·중복 Node/E2E/build/preview 실행·Skill 재호출은 하지 않았다**. 기존 실패 검사 삭제·기대값 변경·새 기능 추가도 없다.
 - **05-02 완료, 누적 11/20.** 검토 범위에서 배포 준비를 막는 제품 결함이나 필수 검사 누락은 발견되지 않았다. 전체 무결함 보장이나 사람 직접 플레이 확인을 뜻하지 않는다.
 - 이번 변경은 결과/계획 문서뿐이다. 해당 diff와 진행표 일치를 검토하여 한국어 상세 commit·정상 feature push 후 원격 HEAD와 함께 이슈 #4 및 coordinator에 보고한다. 06 단계·Pages·workflow·PR 생성·병합·공개는 아직 실행하지 않고 여기서 멈춘다.
+
+## 06-01 Pages 준비: 공개 범위와 설정
+
+2026-09-14 13:37~13:38 +09:00, 고정 안내서 `docs/06-01-Pages-배포-준비.md`를 `hahaysh/space-Invaders@3637e1ad7897a2e674aa85cb8f3f6154da4b3907`의 contents API raw 전문으로 읽었다.
+시작 feature HEAD는 `f79cdef0bc5dfdbf3edd49837fda36efe7b933f7`, 원격 feature와 일치하고 clean이었다. 원격 main은 `4c416e85e6235eb66744b1867248ca5623fec53a`로 유지된다.
+
+### 변경 전 실제 확인
+
+| 시각 (+09:00) | 명령·관찰 | 실제 응답·판단 |
+|---|---|---|
+| 13:37 | `gh api repos/hahaysh/space-Invaders-demo02`의 공개 범위/권한 필드 | `visibility: public`, `private: false`, `permissions.admin: true`, default branch `main` |
+| 13:37 | `gh api repos/hahaysh/space-Invaders-demo02/pages` | HTTP **404 Not Found**, Pages 미설정 |
+| 13:37 | `gh api repos/hahaysh/space-Invaders-demo02/environments/github-pages` | HTTP **404 Not Found**, 해당 환경 없음 |
+| 13:38 | `gh api repos/hahaysh/space-Invaders-demo02/environments` | `total_count: 0`, `environments: []`. 기존 reviewer/wait/배포 보호 규칙 없음 |
+| 13:38 | `git ls-files`, 현재 추적 파일 검토·Node 일회성 패턴 검사 | 22개. 비밀 키/토큰/하드코딩 자격 증명 패턴 일치 0, 개인 설정/키 파일·불필요 산출물 경로 0 |
+| 13:38 | Vite 설정·dist 파일/HTML·lock 검사 | `base: './'`, HTML/JS/CSS/favicon 4개 산출물. 자산 참조 3개 모두 `./` 상대 경로. 공개 registry URL·자격 증명 없는 정상 lock 유지 |
+
+추적 대상은 게임 소스·로컬 SVG·manifest/lock·테스트/설정과 설계/검증 문서 및 최소 App 설정/Skill이다. 기존 공개 출처 링크/저장소 식별자/검증 PID 기록은 포함되며 임의의 개인 문서나 자격 증명을 추가하지 않았다.
+`node_modules`, `dist`, 검사 결과·브라우저 로그/스크린샷은 추적되지 않는다. 이번 검토는 현재 추적 파일 범위이며 모든 과거 이력에 비밀이 없다는 보장은 아니다.
+배포 대상은 기존 검증된 `dist`뿐이다. 루트/저장소 하위 경로의 실제 입력·MIME·dist 바이트 일치 근거는 위 05-01 기록을 사용한다. 아직 업로드 workflow를 만들거나 실행한 것은 아니다.
+
+### 설정 계획과 상태
+
+- 새 `github-pages` 환경을 custom branch 정책으로 만들고 `main`/type `branch` 한 개만 허용한다. `protected_branches`는 false, `custom_branch_policies`는 true이며 보호된 브랜치 전체나 tags를 허용하는 정책과 다르다.
+- Pages source는 API `build_type: workflow`로 설정한다. 기존 reviewer·wait·기타 보호를 삭제/완화하지 않으며 변경 직전 새 보호가 발견되면 중단한다.
+- 계획 검토 시점은 API 설정 전 **06-01 진행/누적 11/20**이었다. 이후 실제 변경과 완료 근거는 아래와 같다.
+- 사용자 위임 범위의 API 실행이다. 인간 GitHub Settings UI 확인/승인·App trust/Run UI는 미확인이다. 예상 주소 `https://hahaysh.github.io/space-Invaders-demo02/`는 아직 실제 공개 게임 URL로 확정하지 않는다. workflow 파일·PR·배포·공개 URL 접속 검사는 이 단계에서 하지 않는다.
+
+### 실제 API 변경과 재조회
+
+모든 설정 변경 대상은 `hahaysh/space-Invaders-demo02`뿐이다. 아래 JSON을 표기된 `gh api --method ... --input -`에 전달했으며 자격 증명이나 비밀은 요청 본문·파일·공개 로그에 넣지 않았다.
+
+| 시각 (+09:00) | 실제 요청·본문 | 응답 및 재조회 |
+|---|---|---|
+| 13:39 | 환경 목록 직전 재조회 | 여전히 `total_count: 0`, 신규/기존 보호를 덮어쓸 상황 없음 |
+| 13:39 | `PUT repos/hahaysh/space-Invaders-demo02/environments/github-pages`, `{"deployment_branch_policy":{"protected_branches":false,"custom_branch_policies":true}}` | 환경 ID `21865889547`, `protection_rules`는 `branch_policy` 한 개, 요청한 두 정책 값 일치 |
+| 13:39 | `POST repos/hahaysh/space-Invaders-demo02/environments/github-pages/deployment-branch-policies`, `{"name":"main","type":"branch"}` | 정책 ID `59915809`. 목록 재조회 `total_count: 1`, 오직 `main`/`branch` |
+| 13:39 | Pages 직전 재조회 | HTTP **404 Not Found**로 여전히 미설정임 확인 후에만 생성 |
+| 13:39 | `POST repos/hahaysh/space-Invaders-demo02/pages`, `{"build_type":"workflow"}` | `build_type: workflow`, `status: null`, `public: true`, `https_enforced: true`. 직후 GET도 동일 |
+| 13:40 | 환경·branch policy·Pages를 각각 GET 후 명시적 값 검사 | custom branch 정책 및 정확히 한 개 `main`/`branch`, Pages workflow/public 일치 통과 |
+| 13:40 | `gh api repos/hahaysh/space-Invaders-demo02/actions/workflows`, deployments 목록 조회 | 등록 workflow **0**, deployments **0**. 배포 요청 없음 |
+
+새 환경의 `can_admins_bypass: true`는 API 생성 응답의 기본값이며 별도로 변경하지 않았다. 환경이 없던 초기 상태를 확인했고 기존 reviewer·wait timer·기타 보호를 삭제/완화하는 요청을 보내지 않았다.
+생성한 환경에는 branch policy 보호가 있으며 `protected_branches: true`를 main-only 대용으로 사용하지 않았다. tags와 다른 브랜치 정책은 없다. 이는 배포 허용 정책의 확인이지 이후 실제 배포 성공 확인이 아니다.
+Pages 응답에는 `source: {"branch":"main","path":"/"}` 메타데이터도 있지만 실제 선택된 게시 방식은 **`build_type: workflow`**다. 이 source 필드를 `dist` 이외 저장소 전체 업로드 설정으로 사용하지 않으며, 후속 workflow의 아티팩트를 dist로 한정해야 한다.
+API가 반환한 `html_url`은 `https://hahaysh.github.io/space-Invaders-demo02/`다. **설정상 예상 주소일 뿐 실제 공개 게임 URL/응답/입력 정상 동작은 아직 미확인**이며 접속·배포 검사를 실행하지 않았다.
+
+### 06-01 결론과 남은 범위
+
+- **06-01 완료, 누적 12/20**. 현재 공개 범위·권한, Pages workflow source, main branch 한 개만 허용하는 환경과 기존 보호 보존, Vite 상대 base/검증된 dist 배포 준비를 확인했다.
+- 초기/직전 404는 Pages·환경이 존재하지 않는 실제 응답으로 보존한다. 설정 생성/재조회는 성공했고 권한 부족·기존 보호 승인 차단은 발생하지 않았다.
+- 인간 GitHub Settings UI 확인·승인, App trust/Run·자동 적용, 이후 환경 승인 흐름과 CI/공개 게임 동작은 미확인이다. API 응답을 인간 UI 승인으로 기록하지 않는다.
+- 로컬 설정·게임·tests·Skill·manifest/lock은 변경하지 않았다. workflow 파일·PR·배포·공개 확인도 미실행이며 공개 전까지 이슈 #4를 닫지 않는다.
+- 이번 추적 파일 변경은 TEST_RESULTS와 IMPLEMENTATION_PLAN뿐이다. diff·진행표를 검토하고 한국어 상세 commit·정상 feature push·원격 HEAD 확인 후 보고하며 다음 지시 전까지 멈춘다.
