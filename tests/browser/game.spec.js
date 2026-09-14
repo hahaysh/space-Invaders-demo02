@@ -247,16 +247,36 @@ test('natural defeat freezes the canvas and supports repeated fresh restarts by 
   await expect(page.getByRole('button', { name: '다시 시작' })).toBeFocused();
   await page.getByRole('button', { name: '다시 시작' }).click();
   await expectFreshGame(page);
-  await page.clock.runFor(32);
-  await page.keyboard.down('d');
-  await page.keyboard.down('Space');
-  await page.clock.runFor(100);
-  await page.keyboard.up('d');
-  await page.keyboard.up('Space');
-  const moved = await player(page);
-  expect(moved.minX).toBeGreaterThanOrEqual(411);
-  expect(moved.minX).toBeLessThanOrEqual(416);
-  expect((await bullets(page)).groups).toBe(1);
+  const frameClock = await page.evaluateHandle(() => {
+    const sample = { time: 0, request: 0 };
+    const observe = (time) => {
+      sample.time = time;
+      sample.request = requestAnimationFrame(observe);
+    };
+    sample.request = requestAnimationFrame(observe);
+    return sample;
+  });
+  try {
+    await page.clock.runFor(32);
+    const initial = await player(page);
+    const start = await frameClock.evaluate((sample) => sample.time);
+    await page.keyboard.down('d');
+    await page.keyboard.down('Space');
+    await page.clock.runFor(100);
+    await page.keyboard.up('d');
+    await page.keyboard.up('Space');
+    const end = await frameClock.evaluate((sample) => sample.time);
+    const moved = await player(page);
+    // A clock interval can straddle different animation-frame boundaries.
+    const expectedTravel = 320 * (end - start) / 1000;
+    expect(end).toBeGreaterThan(start);
+    expect(moved.minX - initial.minX).toBeGreaterThanOrEqual(Math.floor(expectedTravel));
+    expect(moved.minX - initial.minX).toBeLessThanOrEqual(Math.ceil(expectedTravel));
+    expect((await bullets(page)).groups).toBe(1);
+  } finally {
+    await frameClock.evaluate((sample) => cancelAnimationFrame(sample.request));
+    await frameClock.dispose();
+  }
 });
 
 test('natural firing sweep wins, freezes remaining bullets, and restarts with clean score and input', async ({ page }) => {

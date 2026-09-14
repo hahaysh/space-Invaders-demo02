@@ -15,7 +15,7 @@
 |---|---|---|---|---|
 | M1 / 04-01 | R01~R03, R09의 시작·진행 입력 | manifest/lock, Vite, 순수 모델, HTML/CSS/Canvas UI, Node 및 브라우저 검사 | 시작 버튼·Enter, 실제 키, DOM 및 Canvas 픽셀, 모델 시간·경계, 서버 응답, build | 실제 완료, 아래 실행 기록 참조 |
 | M2 / 04-02 | R04~R08 및 종료 입력 | 편대·충돌·점수·승패·재시작과 관련 검사 | 모델 경계·충돌·우선순위·초기화, 실제 브라우저 입력·결과 | 실제 완료, 아래 04-02 실행 기록 참조 |
-| M3 / 04-03 | R10 및 기본 게임 인도 | README, 실제 명령 기반 App 설정, 검증 정리 | 실행·조작 대조, 명령 재실행, PR 리뷰·검사 | 진행, 로컬 검증·PR 인도 후 coordinator 병합 및 원격 main 확인 대기 |
+| M3 / 04-03 | R10 및 기본 게임 인도 | README, 실제 명령 기반 App 설정, 검증 정리 | 실행·조작 대조, 명령 재실행, PR 리뷰·검사 | 완료, PR #3 병합 및 원격 main 확인; App trust/Run은 미확인 |
 
 M1에는 적·점수·승패·재시작이 없었으며 M2에서 추가했다. 일시정지·난이도·목숨·적 공격·배포는 이번 작업에서 제외한다.
 
@@ -31,12 +31,12 @@ M1에는 적·점수·승패·재시작이 없었으며 M2에서 추가했다. �
 | 6 | 03-01 | 완료 | 문서 PR #1 병합 `1de6e849`, 이슈 #2 및 현재 격리 새 세션 확인 |
 | 7 | 04-01 | 완료 | M1 구현, Node 8/8·Chromium 5/5·build, 실제 결과는 아래 기록 |
 | 8 | 04-02 | 완료 | M1 회귀 포함 Node 19/19·Chromium 8/8·build, 자연 승패·정지·재시작 확인 |
-| 9 | 04-03 | 진행 | README·수동 App 설정·검증·PR 인도, 병합/원격 main 확인 전 완료하지 않음 |
-| 10 | 05-01 | 예정 | 미실행 |
-| 11 | 05-02 | 예정 | 미실행 |
-| 12 | 06-01 | 예정 | 미실행 |
-| 13 | 06-02 | 예정 | 미실행 |
-| 14 | 06-03 | 예정 | 미실행 |
+| 9 | 04-03 | 완료 | PR #3 정상 병합 `4c416e85`, 이슈 #2 완료 댓글과 원격 main 확인 |
+| 10 | 05-01 | 완료 | 동일 feature HEAD의 새 읽기/검사 세션에서 Skill 실제 발견·호출 및 검증 성공, 아래 복구 근거 참조 |
+| 11 | 05-02 | 완료 | PRD 전체 기준과 실제 검증 증거 대조, 제품 결함·필수 검사 누락 없음; 수정/중복 suite 불필요 |
+| 12 | 06-01 | 완료 | Public/ADMIN·공개 범위 확인, Pages workflow source·github-pages의 main branch 전용 정책 API 설정/재조회 |
+| 13 | 06-02 | 완료 | 공식 SHA 고정 workflow·조건/권한 검사, Node 19/19·Chromium 8/8·build; 원격 Actions는 미실행 |
+| 14 | 06-03 | 진행 | PR 제출·실제 CI의 프레임 측정 검사 보완, 병합/공개/기록 PR 검증 전 13/20 유지 |
 | 15 | 07-01 | 예정 | 미실행 |
 | 16 | 07-02 | 예정 | 미실행 |
 | 17 | 08-01 | 예정 | 미실행 |
@@ -197,3 +197,57 @@ M1 발사/화면 밖 제거 검사는 M2 적과의 의도된 충돌을 피하는
 - 전체 feature diff와 로컬 결과를 검토하고 한국어 커밋·정상 feature push 후 main 대상 PR을 생성한다. 이 PR은 **기본 코드 병합이며 배포가 아니다**.
 - PR 생성 후 base/head·변경 파일·검사·리뷰 스레드를 읽어 검토하고 최종 SHA/PR/검증/미확인을 이슈 #2와 coordinator에 보고한다. 생성된 PR 번호와 원격 결과 때문에 추가 기록 커밋을 반복하지 않는다.
 - 04-03은 계속 **진행**, 완료 누적은 **8/20**이다. PR 병합 및 원격 main 포함 여부는 coordinator가 후속 확인하고 이슈 댓글에서 완료를 확정한다.
+
+## 05-01 계획 검토 및 진행
+
+- 2026-09-14 13:04~13:06 +09:00: 새 격리 worktree의 HEAD, origin/main, 원격 main 및 공통 조상이 모두 `4c416e85e6235eb66744b1867248ca5623fec53a`임을 확인했다. PR #3은 13:02:48 +09:00 정상 병합되었고 이슈 #2 완료 댓글도 확인했다. 위 04-03 기록은 병합 전 이력으로 보존하며 현재 완료 누적은 **9/20**이다.
+- 파일 변경 전 App 도구로 브랜치를 `hahaysh-space-defense-validation-first-deploy`로 변경했다. main checkout·demo01·원본 sample에 접근하지 않고 이 worktree만 사용한다.
+- 고정 안내서 `hahaysh/space-Invaders@3637e1ad7897a2e674aa85cb8f3f6154da4b3907`의 `docs/05-01-게임-검증과-Skill.md`를 GitHub contents API raw 응답으로 직접 전문 읽었다. AGENTS·ideation·PRD·TRD, 기존 계획·README·실제 scripts·모델/UI·기존 테스트 및 이슈 #4/#2 본문·전체 댓글을 검토했다.
+- 검토한 순서: `TEST_PLAN.md`에 R01~R10 경로 정의 → `TEST_RESULTS.md`와 최소 `.github/skills/game-check/SKILL.md` 작성 → 제공 Skill 도구의 실제 호출 시도 → 기존 검사와 build/preview/하위 경로 실행 → 결과·실패·미확인 기록 → diff 검토·한국어 커밋·정상 feature push 및 원격 확인.
+- 사용자 추천승인 위임에 따른 실행이며 인간 App Plan/Interactive 승인·UI 조작으로 기록하지 않는다. Skill 파일 작성/읽기와 실제 인식/호출을 분리한다. 안전한 갱신을 제공하지 않으면 같은 feature 기반 coordinator의 새 읽기/검사 전용 세션에 인계한다.
+- 실제 실행과 실패·환경·소유 서버 기록은 [TEST_RESULTS.md](TEST_RESULTS.md), 요구사항별 재현 절차는 [TEST_PLAN.md](TEST_PLAN.md)를 단일 기준으로 삼는다. Skill 실제 호출까지 확인하기 전에는 **9/20, 05-01 진행**을 유지한다.
+- 05-02 결함 수정, Pages 설정, workflow, PR 생성·병합·공개는 이 단계에서 하지 않는다. App trust/Run UI는 이전 안전 정책 거부를 우회하지 않고 미확인으로 유지한다.
+- 결과: 일반 검증을 수행하고 소유 서버/브라우저를 정리했다. 실제 Skill 도구는 `game-check not found`를 반환했고 안전한 활성 세션 갱신 수단을 확인하지 못했다. 상세 증거는 TEST_RESULTS에 보존한다. feature 커밋·push 후 coordinator의 같은 feature 기반 읽기/검사 전용 새 세션으로 인계하며 **9/20**을 유지한다.
+
+### 05-01 복구 확인 및 완료
+
+- 2026-09-14 13:31 +09:00, 유일 작성자인 이 세션이 [검사 전용 세션의 원격 근거](https://github.com/hahaysh/space-Invaders-demo02/issues/4#issuecomment-5659022509)를 GitHub API로 직접 읽었다. 앞의 9/20·미발견 기록은 최초 인계 당시 이력이다.
+- coordinator가 만든 새 읽기/검사 전용 세션은 동일 feature HEAD `2cace6da82ee5af88ad2e4a1025e8a89e0080dfa`에서 `game-check`를 발견하고 첫 `functions.skill` 호출의 `loaded successfully` 응답과 현재 격리 worktree의 skill-context를 확인했다. 추적 파일·HEAD를 바꾸지 않았으며 소유 서버·브라우저도 종료했다.
+- 단순 파일 읽기가 아닌 **명시적 Skill 도구 호출 성공**이다. 이 원래 세션의 최초 호출 실패가 소급해서 성공한 것은 아니며 App UI 승인·무요청 자동 적용·AGENTS 자동 로드도 확인한 것이 아니다.
+- 일반 검증과 Skill 호출 후 검증의 상세 결과·실패/복구·미확인은 TEST_RESULTS에 구분했다. **05-01 완료, 누적 10/20**으로 갱신하고 두 기록 파일만 검토·커밋·정상 feature push한다. 다음 05-02는 이 기록을 원격에 보존한 뒤 별도 고정 안내서 검토로 진입한다. 06 단계는 아직 실행하지 않는다.
+
+## 05-02 실제 결과 분류 및 완료
+
+- 2026-09-14 13:33 +09:00, 05-01 복구 기록 커밋 `e8b102b4a3afe367d6460af5b306fb3a3f5aa33e`의 정상 feature push·원격 SHA 일치·clean 및 [05-01 완료 댓글](https://github.com/hahaysh/space-Invaders-demo02/issues/4#issuecomment-5659060325)을 확인한 뒤 진입했다.
+- 고정 SHA `3637e1ad7897a2e674aa85cb8f3f6154da4b3907`의 `docs/05-02-결함-수정과-회귀-검증.md`를 GitHub contents API raw 응답으로 직접 전문 읽었다. 같은 이슈/격리 세션/feature를 유지한다.
+- 계획 검토: 전체 PRD와 TEST_PLAN의 R01~R10을 기존 테스트 내용·이 세션 실행 결과·Skill 호출 후 검사 전용 세션 결과에 대조 → 실제 제품 결함/필수 검사 누락/환경 실패/미실행 분류 → 부족한 필수 증거가 있을 때만 최소 검사 또는 확인된 결함 수정 → 결과와 진행표만 기록한다.
+- 대조 결과는 TEST_RESULTS의 05-02 절에 기록했다. 필수 기능의 확인 근거가 모두 있고 배포 준비를 막는 제품 결함·검사 누락은 발견되지 않았다. 최초 Vite 미설치와 Skill 미발견은 복구된 실행 환경/도구 발견 문제로 구분했다.
+- 검사 대상 `2cace6da` 이후 현재까지 게임·tests·manifest/lock·Skill·빌드 설정의 변경은 없으며 기록 문서 두 개만 바뀌었다. 따라서 안내서의 통과 경로를 적용해 코드 수정·가상 버그·추가 이슈·중복 suite·Skill 재호출·서버 재시작 없이 기존 실제 근거를 검토했다.
+- **05-02 완료, 누적 11/20**. 이번 변경은 TEST_RESULTS와 이 계획뿐이다. 관련 diff·기록 일치 확인 후 한국어 상세 커밋·정상 feature push·원격 확인 및 이슈 #4 댓글로 인계한다. 공개 배포 완료가 아니며 이슈를 닫지 않는다. 06-01/06-02/06-03·Pages·workflow·PR·병합은 시작하지 않고 보고 후 멈춘다.
+
+## 06-01 공개 범위와 Pages 준비
+
+- 2026-09-14 13:37~13:38 +09:00, 같은 격리 세션/feature의 HEAD `f79cdef0bc5dfdbf3edd49837fda36efe7b933f7`와 원격 일치·clean을 확인했다. 고정 SHA `3637e1ad7897a2e674aa85cb8f3f6154da4b3907`의 `docs/06-01-Pages-배포-준비.md`를 contents API raw 전문으로 직접 읽고 사용자 위임 범위를 검토했다.
+- 계획: demo02 Public/ADMIN·현재 추적 파일 공개 범위·Vite 상대 base/dist 확인 → 기존 Pages/환경/보호 규칙 조회 → `github-pages`의 selected custom branch 정책에 type `branch`, name `main`만 허용 → Pages source `workflow` 설정 → API 재조회·결과 기록·diff 검토·정상 feature commit/push 후 정지.
+- API에서 demo02가 Public·admin=true, Pages 조회 404, `github-pages` 조회 404 및 전체 환경 0개를 확인했다. 기존 reviewer·wait·기타 보호 규칙은 존재하지 않는다. 설정 직전 상태를 다시 확인하고 다른 값이나 기존 보호가 생겼으면 덮어쓰지 않는다. `protected_branches: true`로 main-only를 대체하지 않으며 tags·다른 브랜치 정책을 추가하지 않는다.
+- 현재 추적 22개 파일의 검토·패턴 검사, `base: './'`, 기존 dist의 상대 경로 및 하위 경로 실행 근거는 TEST_RESULTS에 기록한다. Pages는 dist만 배포할 준비이며 실제 아티팩트 업로드/workflow 작성은 후속 단계다.
+- 사용자 위임 API 실행과 인간 GitHub/App UI 승인을 구분한다. 권한 부족이나 기존 보호 승인 필요가 확인되면 완화하지 않고 중단·보고한다. 이번에는 06-01만 수행하며 workflow 파일·PR·배포·공개 확인은 실행하지 않는다.
+- 결과: 새 `github-pages` 환경의 `protected_branches: false`, `custom_branch_policies: true` 및 정책 한 개 `name: main`, `type: branch`를 API 설정 후 재조회했다. Pages는 `build_type: workflow`로 생성·재조회했다. 기존 환경이 없었으므로 reviewer/wait/보호 규칙을 제거하거나 완화하지 않았다.
+- 13:40 최종 API 검사는 위 설정 일치·등록 workflow 0·deployment 0을 확인했다. API의 html_url은 설정 주소이며 공개 게임 정상 동작의 증거가 아니다. 상세 요청·응답·미확인은 TEST_RESULTS에 기록한다.
+- **06-01 완료, 누적 12/20**. 기록 두 파일만 검토·한국어 상세 commit·정상 feature push 후 이슈 #4 및 coordinator에 보고하고 멈춘다. 06-02 workflow 작성·06-03 PR/병합/배포는 아직 실행하지 않는다.
+
+## 06-02 배포 workflow 계획 검토
+
+- 2026-09-14 13:47 +09:00, 동일 feature의 HEAD `df372f230298ef6518fd422287441aac8d4505fc`와 clean 및 main-only 환경 정책을 확인했다. 고정 SHA `3637e1ad7897a2e674aa85cb8f3f6154da4b3907`의 `docs/06-02-배포-워크플로.md`를 contents API raw 전문으로 직접 읽고 TRD·실제 scripts/lock 기준을 검토했다.
+- 구조: PR 검사/빌드, main push 및 main 수동 실행만 dist 업로드/배포. build는 Node 24.14.1·npm ci·Chromium 준비·모델·실제 E2E·build 순서다. deploy는 build 성공에 의존하며 main/event 조건과 github-pages 환경을 다시 확인한다.
+- 기본 contents 읽기, deploy에만 Pages/OIDC 쓰기, deploy 전용 고정 concurrency 및 cancel-in-progress false를 사용한다. PR target·배포 토큰 PR 실행·PR 아티팩트 업로드·전체 workflow 취소 정책은 넣지 않는다.
+- 공식 안정 릴리스의 tag가 가리키는 전체 commit SHA와 action.yml/호환 근거를 직접 조회한 뒤 고정했다. 출처/버전/SHA는 TEST_RESULTS와 이슈 #4에 기록한다. App 설정·Skill·게임·기존 tests·manifest/lock은 유지한다.
+- 작성 후 YAML/조건/권한·공식 SHA 검사 → 현재 로컬 모델/E2E/build → 소유 자원 종료 → diff 검토·한국어 commit·정상 feature push 및 원격 확인으로 진행한다. 원격 Actions·PR·병합·배포는 다음 단계이므로 이번에는 실행하지 않는다.
+- 결과: actionlint·YAML/8개 event/ref 경로·실제 Bash 본문 문법 검사를 통과했다. 로컬 모델/E2E/build 및 소유 dev 종료를 확인했으며 실제 수치·도구 실패/복구는 TEST_RESULTS에 보존한다. 서버 HTTP 응답 뒤 소유 PID 생존 검사도 넣어 다른 프로세스 응답만으로 진행하지 않는다.
+- **06-02 완료, 누적 13/20**. 변경은 pages.yml과 두 기록 파일이다. 공식 action 출처와 로컬 증거·원격 미실행을 이슈 #4에 남기고 검토한 변경을 정상 feature commit/push한 뒤 보고·정지한다. 06-03 PR·병합·배포는 아직 실행하지 않는다.
+
+## 06-03 PR 검사 단계
+
+- 2026-09-14 14:00 +09:00, 고정 SHA의 `docs/06-03-PR과-첫-배포.md`를 contents API raw 전문으로 직접 읽고 base main·추적 diff·실제 결과·배포 guard를 검토했다. 지정 도구로 main 대상 PR #5를 `Related to #4`로 제출했다. 자동 이슈 종료나 병합은 하지 않는다.
+- 최초 PR run `34808118561`의 실제 E2E 실패를 읽고 이슈 #4에 즉시 보존했다. 제품/워크플로를 바꾸거나 픽셀 상한을 높이지 않고, 재시작 후 속도 검사를 실제 rAF 관찰 시간과 PRD 속도의 곱으로 비교하도록 최소 보완했다. 실패·원인 재현·로컬 재검사 근거는 TEST_RESULTS에 기록한다.
+- 수정한 같은 feature의 PR CI 완료·build 성공·artifact upload/deploy skipped 및 리뷰를 확인해 coordinator에게 인도한다. 실제 원격 단계 결과는 이슈 댓글에 보존한다. 06-03은 main 배포·실제 공개·한 번의 기록 PR 및 재배포 확인까지 남아 **진행, 누적 13/20**이다.
