@@ -35,7 +35,7 @@ M1에는 적·점수·승패·재시작이 없었으며 M2에서 추가했다. �
 | 10 | 05-01 | 완료 | 동일 feature HEAD의 새 읽기/검사 세션에서 Skill 실제 발견·호출 및 검증 성공, 아래 복구 근거 참조 |
 | 11 | 05-02 | 완료 | PRD 전체 기준과 실제 검증 증거 대조, 제품 결함·필수 검사 누락 없음; 수정/중복 suite 불필요 |
 | 12 | 06-01 | 완료 | Public/ADMIN·공개 범위 확인, Pages workflow source·github-pages의 main branch 전용 정책 API 설정/재조회 |
-| 13 | 06-02 | 예정 | 미실행 |
+| 13 | 06-02 | 완료 | 공식 SHA 고정 workflow·조건/권한 검사, Node 19/19·Chromium 8/8·build; 원격 Actions는 미실행 |
 | 14 | 06-03 | 예정 | 미실행 |
 | 15 | 07-01 | 예정 | 미실행 |
 | 16 | 07-02 | 예정 | 미실행 |
@@ -235,3 +235,13 @@ M1 발사/화면 밖 제거 검사는 M2 적과의 의도된 충돌을 피하는
 - 결과: 새 `github-pages` 환경의 `protected_branches: false`, `custom_branch_policies: true` 및 정책 한 개 `name: main`, `type: branch`를 API 설정 후 재조회했다. Pages는 `build_type: workflow`로 생성·재조회했다. 기존 환경이 없었으므로 reviewer/wait/보호 규칙을 제거하거나 완화하지 않았다.
 - 13:40 최종 API 검사는 위 설정 일치·등록 workflow 0·deployment 0을 확인했다. API의 html_url은 설정 주소이며 공개 게임 정상 동작의 증거가 아니다. 상세 요청·응답·미확인은 TEST_RESULTS에 기록한다.
 - **06-01 완료, 누적 12/20**. 기록 두 파일만 검토·한국어 상세 commit·정상 feature push 후 이슈 #4 및 coordinator에 보고하고 멈춘다. 06-02 workflow 작성·06-03 PR/병합/배포는 아직 실행하지 않는다.
+
+## 06-02 배포 workflow 계획 검토
+
+- 2026-09-14 13:47 +09:00, 동일 feature의 HEAD `df372f230298ef6518fd422287441aac8d4505fc`와 clean 및 main-only 환경 정책을 확인했다. 고정 SHA `3637e1ad7897a2e674aa85cb8f3f6154da4b3907`의 `docs/06-02-배포-워크플로.md`를 contents API raw 전문으로 직접 읽고 TRD·실제 scripts/lock 기준을 검토했다.
+- 구조: PR 검사/빌드, main push 및 main 수동 실행만 dist 업로드/배포. build는 Node 24.14.1·npm ci·Chromium 준비·모델·실제 E2E·build 순서다. deploy는 build 성공에 의존하며 main/event 조건과 github-pages 환경을 다시 확인한다.
+- 기본 contents 읽기, deploy에만 Pages/OIDC 쓰기, deploy 전용 고정 concurrency 및 cancel-in-progress false를 사용한다. PR target·배포 토큰 PR 실행·PR 아티팩트 업로드·전체 workflow 취소 정책은 넣지 않는다.
+- 공식 안정 릴리스의 tag가 가리키는 전체 commit SHA와 action.yml/호환 근거를 직접 조회한 뒤 고정했다. 출처/버전/SHA는 TEST_RESULTS와 이슈 #4에 기록한다. App 설정·Skill·게임·기존 tests·manifest/lock은 유지한다.
+- 작성 후 YAML/조건/권한·공식 SHA 검사 → 현재 로컬 모델/E2E/build → 소유 자원 종료 → diff 검토·한국어 commit·정상 feature push 및 원격 확인으로 진행한다. 원격 Actions·PR·병합·배포는 다음 단계이므로 이번에는 실행하지 않는다.
+- 결과: actionlint·YAML/8개 event/ref 경로·실제 Bash 본문 문법 검사를 통과했다. 로컬 모델/E2E/build 및 소유 dev 종료를 확인했으며 실제 수치·도구 실패/복구는 TEST_RESULTS에 보존한다. 서버 HTTP 응답 뒤 소유 PID 생존 검사도 넣어 다른 프로세스 응답만으로 진행하지 않는다.
+- **06-02 완료, 누적 13/20**. 변경은 pages.yml과 두 기록 파일이다. 공식 action 출처와 로컬 증거·원격 미실행을 이슈 #4에 남기고 검토한 변경을 정상 feature commit/push한 뒤 보고·정지한다. 06-03 PR·병합·배포는 아직 실행하지 않는다.

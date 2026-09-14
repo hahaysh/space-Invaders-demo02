@@ -202,3 +202,71 @@ API가 반환한 `html_url`은 `https://hahaysh.github.io/space-Invaders-demo02/
 - 인간 GitHub Settings UI 확인·승인, App trust/Run·자동 적용, 이후 환경 승인 흐름과 CI/공개 게임 동작은 미확인이다. API 응답을 인간 UI 승인으로 기록하지 않는다.
 - 로컬 설정·게임·tests·Skill·manifest/lock은 변경하지 않았다. workflow 파일·PR·배포·공개 확인도 미실행이며 공개 전까지 이슈 #4를 닫지 않는다.
 - 이번 추적 파일 변경은 TEST_RESULTS와 IMPLEMENTATION_PLAN뿐이다. diff·진행표를 검토하고 한국어 상세 commit·정상 feature push·원격 HEAD 확인 후 보고하며 다음 지시 전까지 멈춘다.
+
+## 06-02 workflow 작성과 검증
+
+2026-09-14 13:47 +09:00, 고정 SHA `3637e1ad7897a2e674aa85cb8f3f6154da4b3907`의 `docs/06-02-배포-워크플로.md`를 contents API raw 전문으로 직접 읽고 같은 feature에서 계획을 검토했다.
+시작 HEAD는 `df372f230298ef6518fd422287441aac8d4505fc`, clean이며 환경 허용 정책 GET은 여전히 한 개의 `main`/type `branch`다.
+
+### 공식 action 출처
+
+각 공식 저장소의 `releases/latest`에서 `draft: false`, `prerelease: false`를 확인하고 `git/ref/tags/<tag>`를 직접 조회했다. 네 ref 모두 object type `commit`이므로 아래는 태그 객체가 아닌 전체 commit SHA다.
+해당 tag의 action.yml과 릴리스 설명, 고정 commit의 checkout/deploy README도 검토했다.
+
+| 공식 릴리스 출처 | 버전 | 확인한 전체 commit SHA |
+|---|---|---|
+| https://github.com/actions/checkout/releases/tag/v7.0.1 | v7.0.1 | `3d3c42e5aac5ba805825da76410c181273ba90b1` |
+| https://github.com/actions/setup-node/releases/tag/v7.0.0 | v7.0.0 | `820762786026740c76f36085b0efc47a31fe5020` |
+| https://github.com/actions/upload-pages-artifact/releases/tag/v5.0.0 | v5.0.0 | `fc324d3547104276b827a68afc52ff2a11cc49c9` |
+| https://github.com/actions/deploy-pages/releases/tag/v5.0.1 | v5.0.1 | `368f82528645a54fb793d4d04e342629a3f51346` |
+
+checkout/setup-node/deploy-pages는 Node 24 action 런타임이다. checkout 문서의 최소 runner 2.327.1 요구와 GitHub.com hosted Ubuntu 사용을 대조했다. upload-pages-artifact는 composite이며 내부 upload-artifact v7도 전체 SHA로 고정되어 있다.
+upload/deploy는 기본 artifact 이름 `github-pages`를 공유하며 공식 deploy 문서가 Pages upload 형식을 지원함을 확인했다. GHES가 아닌 GitHub.com이 대상이다. 실제 hosted runner 실행 여부는 다음 단계에서 확인한다.
+프로젝트 Node는 로컬 검증과 같은 `24.14.1`로 고정했고 manifest 엔진 범위와 호환된다. runner의 실제 npm/Chromium 버전과 Linux 시스템 의존성 준비 성공은 아직 미확인이다.
+
+### 구현 및 검증 계획
+
+- 추가 `.github/workflows/pages.yml` 하나와 관련 기록 두 파일만 변경한다. PR은 검사/빌드만, main push 또는 main workflow_dispatch에서만 dist 업로드와 deploy가 실행되도록 동일 ref/event 조건을 사용한다. feature/tag 수동 실행은 배포하지 않는다.
+- build는 공개 registry의 lock 기반 npm ci → `npm run browser:install -- --with-deps` → `npm test` → 소유 dev/HTTP 대기/`npm run test:e2e` → `npm run build` 순서다. Chromium 준비는 새 CI runner용이며 로컬에 이미 있는 브라우저를 재설치하는 명령이 아니다.
+- Ubuntu E2E 단계는 npm/Vite를 한 소유 process group으로 시작하고 EXIT trap으로 그 그룹만 종료하며 로그를 출력한다. HTTP 준비 또는 테스트 실패는 step/build 실패로 전파된다.
+- 기본 contents read, deploy에만 pages write/id-token write, `needs: build`·github-pages 환경·main/event 조건을 두었다. deploy에만 concurrency group github-pages/cancel-in-progress false를 사용한다. PR에서는 환경 승인/배포 권한을 요구하지 않는다.
+- 현재 workflow는 작성했으나 아래 검사 전에는 원격 CI나 로컬 회귀 성공으로 기록하지 않는다. 06-02 진행, 누적 12/20이다.
+- 선택한 `actionlint -version`이 명령 미발견으로 실패했다. 이후 최소 보조 도구만 공식 릴리스/체크섬 검증 후 세션 아티팩트에 준비한다. 기존 PyYAML 6.0.3은 사용 가능하며 프로젝트 의존성은 변경하지 않는다.
+
+### 실제 로컬 결과와 실패 구분
+
+| 시각 (2026-09-14 +09:00) | 실제 명령·검사 | 결과 |
+|---|---|---|
+| 13:51 | 공식 actionlint v1.7.12 Windows amd64 릴리스 다운로드·SHA256 비교·실행 | GitHub 릴리스 API digest `6e7241b51e6817ea6a047693d8e6fed13b31819c9a0dd6c5a726e1592d22f6e9`와 zip 일치. 세션 아티팩트에만 설치, `actionlint.exe .github\workflows\pages.yml` 성공 |
+| 13:51~13:52 | `npm test` | **19/19**, 359.4063ms |
+| 13:51~13:52 | `npm run build` | **성공**, 685ms. 기존과 같은 dist 파일/자산 이름 |
+| 13:52~13:53 | `npm run dev`, 소유 PID·명령행·HTTP 확인 | shell `workflow-dev`, PID **41972**/부모 **37088**, 현재 worktree Vite strictPort, 5173 HTTP **200** |
+| 13:53~13:54 | `npm run test:e2e` | **8/8**, runner 1.2분. 자연 패배/재시작 41.3초, 자연 승리/초기화 9.7초 |
+| 13:53 | PyYAML BaseLoader 및 Python 일회성 정책 검사 | YAML 이벤트/8개 ref-event 조합·동일 upload/deploy 조건·권한·needs·deploy-only concurrency·dist-only·조회 SHA 고정·실제 script 이름/순서 통과 |
+| 13:54~13:55 | 최종 actionlint 재실행, Git Bash 문법 검사 준비 | actionlint 성공. 첫 Bash 탐색은 App 번들 Git 경로에서 bash를 찾지 못해 **도구 경로 오류**, shell 검사는 미실행이었다 |
+| 13:55 | 소유 shell 종료 후 PID/포트 조회 | PID41972 없음, 5173/4173 LISTEN **0** |
+| 13:56 | 발견한 `C:\Program Files\Git\bin\bash.exe --noprofile --norc -n`에 workflow의 실제 Bash 본문 전달 | **문법 검사 통과**. WSL이나 추정 실행 파일을 실행하지 않았으며 실제 Ubuntu E2E step 실행과는 다름 |
+
+보조 도구 출처는 https://github.com/rhysd/actionlint/releases/tag/v1.7.12 이다. 최초 미발견 이후에만 다운로드했고 프로젝트 의존성/lock을 바꾸지 않았다.
+로컬 Node/npm/의존성/Chromium은 기존 설치를 재사용했다. 이 단계에서 npm ci나 browser:install을 로컬 재실행하지 않았으며 workflow의 fresh-runner 설치 단계 실행 성공은 아직 주장하지 않는다.
+E2E runner는 정상 종료했고 별도 수동 Playwright 페이지나 preview 서버는 만들지 않았다. dev는 소유 shell만 종료했으며 모르는 PID를 종료하지 않았다.
+게임 assertion·YAML·정책·actionlint·최종 Bash 문법 실패는 없다. 최초 actionlint 미설치와 잘못 찾은 Git Bash 경로는 각각 도구 설치/경로 복구로 해결한 환경 오류다.
+
+### 이벤트·권한 검토 결론
+
+| 실행 경로 | build/검사 | dist 업로드·deploy |
+|---|---|---|
+| pull_request (PR ref 및 가정상 main ref 모두) | 실행 | event 조건으로 모두 차단 |
+| main push | 실행 | build 성공 시에만 허용 |
+| feature/tag push | push 트리거에서 제외 | ref 조건도 차단 |
+| main workflow_dispatch | 실행 | build 성공 시에만 허용 |
+| feature/tag workflow_dispatch | 실행 가능 | ref 조건으로 차단 |
+
+이는 작성한 YAML/표현식의 정적 검증 결과이며 원격 이벤트 실행 로그가 아니다. upload는 앞 단계 성공을 요구하는 기본 step 조건을 유지하고 deploy는 `needs: build`와 기본 성공 의존성을 유지한다. `always`/`continue-on-error`나 실패 무시 경로는 없다.
+소스 checkout의 자격 증명 보존은 false, build는 기본 contents read만 상속하고 environment를 사용하지 않는다. deploy만 pages write/id-token write 및 github-pages 환경을 사용한다.
+기본 artifact 이름은 upload/deploy 양쪽에서 github-pages, 경로는 dist뿐이다. 전체 workflow/build에는 concurrency가 없고 deploy의 고정 그룹만 `cancel-in-progress: false`다.
+13:55 API 재조회에서 Pages build_type workflow/status null, 환경 custom=true/protected=false·branch_policy 보호·오직 main/branch 한 개가 유지됐다. 등록 workflow는 아직 0이며 원격 실행/배포 요청은 하지 않았다.
+
+**06-02 완료, 누적 13/20.** pages.yml·IMPLEMENTATION_PLAN·TEST_RESULTS만 변경했다. 기존 github-app/Skill·게임·tests·manifest/lock은 그대로다.
+원격 Actions의 설치·Linux E2E와 프로세스 정리·업로드·배포·환경 승인 및 실제 공개 URL은 **미실행/미확인**이다. 로컬 검증을 CI 통과로 기록하지 않는다. 인간 UI 승인·무요청 자동 적용 등의 기존 미확인도 유지한다.
+검토 후 한국어 상세 commit·정상 feature push·원격 HEAD 확인 및 이슈 #4 보고만 수행하고 멈춘다. PR 생성·병합·workflow_dispatch·배포는 다음 06-03이므로 아직 실행하지 않는다.
