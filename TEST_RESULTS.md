@@ -406,3 +406,69 @@ preview 관리 Chromium은 `153.0.8010.36`이며 두 페이지 모두 console/pa
 15:46:08 +09:00에 세 PID 부재와 두 포트 LISTEN0을 재확인했다. 모르는 프로세스를 종료하지 않았다. `difficulty-preview-subpath.png`는 실제 캡처/view 뒤 세션 아티팩트로 이동했으며 Git에 넣지 않는다. 의존성·빌드·검사 ignored 산출물은 추적 파일/clean과 구분한다.
 
 초기 동기화 제품 결함과 native 메뉴 재열기 검사 순서, missing-dependency 실패를 각각 기록하고 모두 복구했다. PR/CI는 제출 후 이슈 댓글에 실제 근거를 남긴다. 병합·실제 공개 전 **08-02 진행, 누적 17/20**을 유지한다. 사람 직접 플레이·다른 OS/브라우저·실제 OS 탭 전환·App trust/Run·인간 UI 승인·AGENTS/Skill 무요청 자동 적용은 미확인이며 이전 안전 정책 거부를 우회하지 않는다.
+
+## 09-02 목숨·재도전 구현·Skill 검증 (병합·공개 전)
+
+2026-09-14 +09:00, 같은 feature `hahaysh-space-defense-lives-retry`, 승인 문서 HEAD `df03c0bc0831ffdf62b00869e0915a49845ba6b5`, 기준 main `97766d9e3dfe4542185a4c5a588cd9d46fde18ac`에서 사용자 위임으로 실행한다. 코드 수용·로컬/CI와 최종 공개를 구분하고, 마지막 공개 완료 근거는 [이슈 #11 댓글](https://github.com/hahaysh/space-Invaders-demo02/issues/11)에 보존한다. 이 문서의 병합 전 결과만으로 20/20을 주장하지 않으며 최종 기록만을 위한 추가 PR은 만들지 않는다.
+
+### 실제 Skill·계획 및 최초 실행
+
+- 16:24 첫 액션 `functions.skill({ skill: "game-check" })`가 **`Skill "game-check" loaded successfully. Follow the instructions in the skill context.`**를 반환했다. Base directory는 현재 worktree의 `.github\skills\game-check`이며 실제 도구 호출/로드다. 09-01의 목록 발견·파일 존재만 확인한 이력과 구분한다.
+- 고정 SHA `3637e1ad7897a2e674aa85cb8f3f6154da4b3907`의 09-02 원문을 contents raw API 전문으로 직접 읽고 승인 문서·현재 코드/검사/scripts·이슈 전체 댓글을 대조했다. 계획과 위임 범위는 IMPLEMENTATION_PLAN의 09-02 절을 따른다. 사람 UI 승인·자동 적용이 아니다.
+- 환경: Windows, Node `v24.14.1`, npm `10.8.3`. 제품 수치·수용 기준은 PRD, 검사 절차는 TEST_PLAN을 따른다.
+
+| 시각 | 실제 명령·관찰 | 결과 |
+|---|---|---|
+| 16:29 | `npm test` | **34/34, fail0, 482.672ms**. 기존 경계의 승인 기대 전환 및 목숨/다음 시도 추가, 기본 게임/P/난이도 전체 모델 회귀 |
+| 16:29 | 최초 `npm run build` | **실패**: `'vite' is not recognized` (새 worktree 의존성 미설치). 5173/4173 LISTEN0, [즉시 실패 기록](https://github.com/hahaysh/space-Invaders-demo02/issues/11#issuecomment-5660542890) |
+| 16:29~16:30 | `npm ci --no-fund --no-audit --registry=https://registry.npmjs.org && npm run build` | 실제 missing-dependency 실패 뒤 설치18개/22초, build **3.81초 성공**, manifest/lock diff 없음 |
+| 16:31 | `npm run dev`, 소유 PID/명령행/HTTP 확인 후 `npm run test:e2e` | dev PID34556/부모45164, 현재 worktree strictPort5173·HTTP200 확인. 최초 전체 Chromium 검사는 아래 실패/복구와 구분 |
+
+### 최초 Chromium 실패와 원인별 수정
+
+- 16:31~16:44 `npm run test:e2e`: **8 통과/9 실패, 12.5분**. 실행 중 제품/검사 코드를 바꾸거나 중복 suite를 시작하지 않았다. 결과를 이슈 #11에 즉시 기록한다.
+- 6개는 게임 탐색 전 fixture의 `clock.pauseAt: Cannot fast-forward to the past`였다. `clock.install` 시작 시각과 `pauseAt` 목표를 동일하게 잡아 두 도구 호출 사이의 실제 시간 진행과 경합했다. 게임 탐색 전에 설치 시각을 목표보다 앞서게 하여 같은 고정 목표에서 멈추도록 수정한다. 게임에 흘리는 시간·속도 기대·입력 검사는 바꾸지 않는다.
+- title 검사는 첫 rAF 이전 목숨 DOM이 빈 값인 실제 UI 결함을 검출했다. 초기 갱신을 잘못 넣은 상태 전환 블록에서 제거하고 최초 draw/rAF 예약 전 모델에서 목숨 DOM을 동기화한다. 기대값을 빈 값으로 바꾸지 않는다.
+- 자연 패배/재시작 검사는 확장된 두 게임의 여러 도달·retry·최종 lost와 쉬움 새 게임까지 진행한 뒤 240초 제한으로 중단되었다. P 동결 검사도 30초 제한을 초과했다. 전체 테스트 기본 예산을 60초, 확장 자연 최종 패배 경로를 360초로 조정한다. 제품 delta·속도·프레임 및 모든 assertion은 그대로이며 타이머 건너뛰기·치트로 대체하지 않는다.
+- 신규 점수 있는 retry의 Enter/버튼·동결·잠금·입력 잔류·첫 프레임·P 경로는 최초 실행에서도 **통과(1.9분)**했다. 이는 다른 실패를 상쇄하거나 전체 통과를 뜻하지 않는다.
+
+### 복구 및 최종 전체 회귀
+
+| 시각 | 실제 명령·관찰 | 결과 |
+|---|---|---|
+| 16:45~16:59 | `npm run test:e2e` | **16 통과/1 실패, 13.6분**. 초기 목숨 DOM·native select·모든 난이도·invalid·P 복구, 두 게임의 최종 패배/재시작도 4.2분 통과. 남은 실패는 신규 retry 검사 180초 timeout |
+| 17:00 | `npm run test:e2e -- --grep "retry freezes a scored"` | **1/1 통과, 31.6초** (해당 검사 27.5초), 아래 불필요 대기 보완 후 재검사 |
+| 17:00 | `npm test && npm run build` | **모델 34/34, fail0, 191.6422ms**, build **459ms 성공** |
+| 17:01~17:04 | `npm run test:e2e` | **최종 전체 Chromium 17/17 통과, 3.0분**. 자연 최종 패배/재시작 1.6분, 점수 있는 retry 복합 경로 29.2초. 부분 검사 결과를 전체 통과로 대체하지 않았다 |
+| 17:04:58~17:05:38 | `npm run preview`, 세션 아티팩트 `node <files>\lives-preview.cjs http://127.0.0.1:4173/ enter <screenshot>` | 아래 루트 일반시간 입력·자연 retry·Enter 및 자산 비교 성공 |
+| 17:06:03~17:06:43 | `npm run preview -- --base=/space-Invaders-demo02/`, 같은 스크립트의 하위 경로/button 인자 | 아래 하위 경로 일반시간 입력·자연 retry·버튼 및 자산 비교 성공 |
+| 17:07 | 소유 shell 종료 뒤 PID/포트 조회, screenshot view, `git diff --check` | 서버 PID 세 개 부재·5173/4173 LISTEN0, Canvas 장면/안내 확인, diff 공백 오류 없음 |
+
+첫 전체 실패의 [즉시 기록](https://github.com/hahaysh/space-Invaders-demo02/issues/11#issuecomment-5660696634)과 두 번째 실행의 [유일 timeout 및 보완 기록](https://github.com/hahaysh/space-Invaders-demo02/issues/11#issuecomment-5660850621)을 보존한다. 두 번째 timeout 당시 DOM은 두 번째 다음 시도 뒤 목숨·점수/current가 초기화/보존된 playing이었다. 최초 1.9분 통과했던 경로이며 새 기능 assertion 실패로 단정하지 않는다.
+
+신규 retry 검사의 고정된 긴 시간 진행은 이미 동결된 화면에도 많은 rAF를 실행했다. 최종 검사는 같은 `runFor`로 게임 프레임을 진행하면서 짧은 구간마다 DOM retry 도달을 확인해 멈추고, 기존 상한과 상태 assertion을 유지한다. 별도 동결 대기·입력/난이도 잠금·첫 프레임·실제 Enter/버튼·P의 모든 assertion은 유지했으며 복합 경로 실행 예산만 추가했다. 제품 시간·속도·경계·허용 오차 변경이나 callback 건너뛰기/치트는 없다. 실행 환경 내부 부하 원인까지 측정한 것은 아니다.
+
+### 수용 기준과 실제 관찰 구분
+
+- 모델은 초기 목숨부터 연속 실패로 소진까지, 동시에 여러 생존 적 도달, delta 0 및 이동 하위 갱신 중 도달, 남은 하위 갱신/추가 발사 중단, retry/lost 반복 갱신 전체 불변을 확인했다. 기존 충돌 후 득점·적 바닥 직전/정확 임계·P 정지 중 미판정과 재개 후 판정은 삭제하지 않고 승인된 잔여 목숨별 기대값으로 전환했다.
+- 모든 난이도의 새 게임/두 결과 재시작·retry 다음 시도에서 중첩 객체·점수·방향·위치·탄환·elapsed/cooldown 초기화 및 이전 모델 불변을 확인했다. 다음 시도의 pending/current 정렬·lives 보존, 첫 발사와 다음 발사 간격 경계, invalid 명시 오류·부분 변경 없음도 포함한다. 마지막 적 충돌과 도달이 겹치는 기존 하위 갱신에서는 각 잔여 목숨의 won 보존·득점·정확한 중단 시각을 유지했다.
+- Chromium은 실제 native Tab/화살표/Space/Enter 선택·게임 시작, 보통/어려움의 자연 연속 실패·Enter/버튼 다음 시도·최종 lost·선택 해제 및 R/버튼 새 게임, 자연 발사 승리와 목숨 보존을 확인했다. 점수 있는 retry에서 DOM 목숨/점수/current·선택 잠금·Canvas 전체 동결, 실패 전/대기 중 입력 및 repeat 잔류 방지, 버튼 포커스의 repeat Enter 차단, 다음 시도 첫 rAF 불변과 새 이동/발사·P를 검사했다.
+- 기존 정밀 속도·편대 반전·충돌/점수·발사·종료 동결·P 전체 회귀를 유지했다. E2E는 Playwright clock이며 합성 defaultPrevented/repeat/blur/hidden/select change는 실제 사용자 조작·OS 전환과 구분한다. UI 검사에 앱 모델 전역 노출·상태 주입·치트는 없다.
+- preview 두 경로는 Chromium **153.0.8010.12**, clock 설치 없는 **일반시간** 실제 키/버튼·읽기전용 DOM/Canvas다. native 선택으로 어려움 확정(선택 Enter는 미시작)→Tab/Space 시작→ArrowRight/Space 이동·발사(플레이어 순색 x381→445)→P 정지 400ms 전체 Canvas 동일→재개 뒤 자연 retry를 확인했다. 각 실패 점수는 **20**, 남은 목숨 DOM은 **2**였으며 R/P·이동/Space·400ms 대기에도 Canvas/점수 불변·선택 disabled였다.
+- 루트는 실제 Enter, 하위 경로는 버튼으로 다음 시도를 시작했다. 두 경로 모두 점수 초기화·목숨/current 보존·400ms 입력 없는 초기 위치, 새 A/Space 입력에만 이동·발사와 P 정지를 확인했고 새로고침 후 초기 목숨·보통·선택 활성도 확인했다. console/page error **0**, Canvas readback 성능 권고 경고는 각 1건이며 오류와 구분한다.
+- 각 preview의 HTML·favicon·JS·CSS 네 파일은 실제 URL에서 **HTTP200·정상 MIME·dist bytes 완전일치**였다(HTML3000B, SVG171B, JS8257B, CSS1158B). HTML fallback의 200을 자산 성공으로 보지 않았다. 로컬 하위 경로 확인은 실제 Pages 공개 검증이 아니다.
+- screenshot `lives-preview-root.png`/`lives-preview-subpath.png`는 세션 아티팩트에 보존했다. 하위 경로 이미지를 직접 view하여 실패 장면 위 재도전 안내/다음 시도 버튼·점수/목숨·잠긴 난이도/current·방어선·적·플레이어가 함께 표시됨을 확인했다. 세션 전용 preview 검사 스크립트는 저장소 tooling에 추가하지 않는다.
+
+### 소유 자원·인도와 미확인
+
+| 소유 shell | PID / 부모 PID | 확인·종료 |
+|---|---|---|
+| `lives-dev` | 34556 / 45164 | 현재 worktree·strictPort5173·HTTP200 확인, 최종 E2E 후 종료 |
+| `lives-preview-root` | 44076 / 38016 | 현재 worktree·strictPort4173·루트 HTTP200 확인, 루트 검사 뒤 종료 |
+| `lives-preview-subpath` | 39212 / 43520 | 현재 worktree·strictPort4173·하위 경로 HTTP200 확인, 검사 뒤 종료 |
+
+17:07:09 +09:00 세 PID 부재·두 포트 LISTEN0을 확인했다. 두 preview 스크립트는 finally에서 소유 Chromium close 완료를 보고했으며 E2E 관리 브라우저도 runner 종료로 정리되었다. 모르는 프로세스 종료·재사용은 없다.
+
+로컬 코드 수용과 전체 회귀를 확인하고 diff·한국어 상세 commit·정상 feature push 후 main PR/실제 CI·리뷰 근거를 이슈 #11에 기록한다. PR에서 upload/deploy는 skipped여야 하며 병합은 coordinator 범위다. **09-02 진행, 누적 19/20**을 유지하고 정확한 main 배포·실제 공개 후 이슈 댓글에서만 최종 완료를 확정한다.
+
+App trust/Run UI·사람 UI 승인·사람 직접 플레이·실제 OS 탭 전환·다른 OS/브라우저 수동 조작·AGENTS/Skill 무요청 자동 적용은 계속 미확인이다. 안전 정책을 우회하지 않았고 `.github`·manifest/lock·AGENTS·ideation을 변경하지 않았다. main checkout·demo01·원본 sample·worker/factory·다른 세션을 사용하지 않았다.

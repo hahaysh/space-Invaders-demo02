@@ -57,7 +57,7 @@ E2E 시간은 Playwright clock으로 제어한다. blur/hidden·일부 repeat/de
 
 ## 09-02 목숨·재도전 검증 경로
 
-09-01은 문서 검토만 수행하며 아래 검사는 별도 09-02 지시 후 구현·실행한다. 제품 수치와 상태 계약은 PRD만 참조한다. [08-02 완료 근거](https://github.com/hahaysh/space-Invaders-demo02/issues/9#issuecomment-5660296207)의 난이도 공개 결과를 목숨 검증으로 재사용하지 않는다.
+09-01은 문서 검토만 수행했다. 아래 검사는 별도 09-02 지시에 따라 구현·실행하며 실제 결과는 TEST_RESULTS의 09-02 절과 이슈 #11 댓글에서 구분한다. 제품 수치와 상태 계약은 PRD만 참조한다. [08-02 완료 근거](https://github.com/hahaysh/space-Invaders-demo02/issues/9#issuecomment-5660296207)의 난이도 공개 결과를 목숨 검증으로 재사용하지 않는다.
 
 1. 기존 `a surviving defense-line enemy loses after collision scoring`과 `defense-line threshold uses enemy bottom, not its top` 검사를 삭제하지 않는다. 충돌 후 득점·생존 적 수 및 바닥 임계값 직전/정확 도달 조건을 유지하고 즉시 lost 기대만 PRD R17의 잔여 목숨별 retry/lost로 바꾼다. 마지막 적 충돌과 도달이 겹치는 기존 하위 갱신 검사는 won·득점·제거·중단 시각을 유지하고 목숨 불변을 추가한다.
 2. 여러 적이 동시에 도달하는 경우, delta 0의 선행 판정, 양의 delta 중 하강으로 도달하는 경우를 각각 검사한다. 한 호출에서 여러 하위 갱신을 처리할 수 있어도 차감은 한 번이며 retry/lost 진입 뒤 남은 갱신을 중단해야 한다. 동결된 모델에 반복 갱신과 이동/발사 입력을 주어 목숨·점수·중첩 상태·elapsed·cooldown 전부 불변을 확인한다. 기존 최종 두 결과 동결 검사는 잔여 목숨을 설정해 lost에 도달하도록 유지하고 retry를 추가한다.
@@ -95,3 +95,5 @@ E2E 시간은 Playwright clock으로 제어한다. blur/hidden·일부 repeat/de
 08-02의 명시적 Skill 도구 호출/로드와 실제 후속 검증·실패/복구는 TEST_RESULTS에 기록한다. 위 08-01 미호출 이력과 인간 UI/자동 적용 미확인은 유지한다.
 
 09-01 새 세션에서는 시작 제공 목록의 `game-check` 발견과 저장소 파일 존재만 확인했다. 실제 호출·검증은 하지 않았으며 별도 09-02 지시 때 수행한다. 파일 발견을 호출·자동 적용으로 간주하지 않는다. App trust/Run UI·사람 UI 승인·AGENTS/Skill 무요청 자동 적용은 계속 미확인이며 이전 안전 정책 거부를 우회하지 않는다.
+
+09-02의 명시적 Skill 도구 호출/로드와 실제 검증·실패/복구는 TEST_RESULTS에 기록한다. 위 09-01 미호출 사실과 인간 UI/자동 적용 미확인은 소급 변경하지 않는다.

@@ -1,6 +1,6 @@
 import {
   canSelectDifficulty, createGame, DIFFICULTIES, DifficultyError, getDifficulty,
-  isFinished, restartGame, RULES, selectDifficulty, startGame, togglePause, updateGame,
+  isFinished, nextAttempt, restartGame, RULES, selectDifficulty, startGame, togglePause, updateGame,
 } from './model.js';
 
 const canvas = document.querySelector('#game');
@@ -11,7 +11,10 @@ const resultScreen = document.querySelector('#result-screen');
 const resultTitle = document.querySelector('#result-title');
 const resultDescription = document.querySelector('#result-description');
 const restartButton = document.querySelector('#restart');
+const retryScreen = document.querySelector('#retry-screen');
+const nextButton = document.querySelector('#next-attempt');
 const score = document.querySelector('#score');
+const lives = document.querySelector('#lives');
 const status = document.querySelector('#status');
 const difficultySelect = document.querySelector('#difficulty');
 const currentDifficulty = document.querySelector('#current-difficulty');
@@ -63,8 +66,10 @@ function enterGame(next) {
   previousTime = null;
   titleScreen.hidden = true;
   resultScreen.hidden = true;
+  retryScreen.hidden = true;
   status.textContent = '진행 중 · 적 편대를 막아 주세요.';
   score.textContent = String(game.score);
+  lives.textContent = String(game.lives);
   syncDifficulty();
   canvas.focus({ preventScroll: true });
   draw();
@@ -72,8 +77,10 @@ function enterGame(next) {
 
 const start = () => withDifficultyError(() => enterGame(startGame(game)));
 const restart = () => withDifficultyError(() => enterGame(restartGame(game)));
+const retry = () => withDifficultyError(() => enterGame(nextAttempt(game)));
 startButton.addEventListener('click', start);
 restartButton.addEventListener('click', restart);
+nextButton.addEventListener('click', retry);
 difficultySelect.addEventListener('change', () => withDifficultyError(() => {
   game = selectDifficulty(game, difficultySelect.value);
   syncDifficulty();
@@ -83,6 +90,11 @@ window.addEventListener('keydown', (event) => {
   if (game.status === 'title' && event.code === 'Enter') {
     event.preventDefault();
     if (!event.repeat) start();
+  } else if (game.status === 'retry' && event.code === 'Enter') {
+    event.preventDefault();
+    if (!event.repeat) retry();
+  } else if (game.status === 'retry' && (event.code === 'KeyR' || event.code === 'KeyP')) {
+    event.preventDefault();
   } else if (isFinished(game) && event.code === 'KeyR') {
     event.preventDefault();
     if (!event.repeat) restart();
@@ -98,14 +110,18 @@ window.addEventListener('keydown', (event) => {
       syncDifficulty();
       draw();
     }
-  } else if ((game.status === 'playing' || game.status === 'paused') && movementKeys.has(event.code)) {
+  } else if ((game.status === 'playing' || game.status === 'paused' || game.status === 'retry') &&
+      movementKeys.has(event.code)) {
+    if (game.status === 'retry' && event.target === nextButton && event.code === 'Space') return;
     event.preventDefault();
     if (game.status === 'playing' && !event.repeat) keys.add(event.code);
   }
 });
 window.addEventListener('keyup', (event) => {
   if (event.target !== difficultySelect &&
-      (game.status === 'playing' || game.status === 'paused') && movementKeys.has(event.code)) {
+      !(event.target === nextButton && event.code === 'Space') &&
+      (game.status === 'playing' || game.status === 'paused' || game.status === 'retry') &&
+      movementKeys.has(event.code)) {
     event.preventDefault();
   }
   keys.delete(event.code);
@@ -157,14 +173,19 @@ function frame(time) {
     fire: keys.has('Space'),
   });
   if (score.textContent !== String(game.score)) score.textContent = String(game.score);
-  if (previousStatus !== game.status && isFinished(game)) {
+  if (lives.textContent !== String(game.lives)) lives.textContent = String(game.lives);
+  if (previousStatus !== game.status && (isFinished(game) || game.status === 'retry')) {
     clearInput();
     previousTime = null;
     const won = game.status === 'won';
+    const awaitingRetry = game.status === 'retry';
     resultTitle.textContent = won ? '승리!' : '패배';
-    resultDescription.textContent = won ? '모든 적을 제거했습니다.' : '적이 방어선에 도달했습니다.';
-    status.textContent = won ? '승리 · 모든 적 제거' : '패배 · 방어선 도달';
-    resultScreen.hidden = false;
+    resultDescription.textContent = won ? '모든 적을 제거했습니다.' : '모든 목숨을 소진했습니다.';
+    status.textContent = awaitingRetry
+      ? '재도전 대기 · Enter 또는 다음 시도 버튼으로 시작하세요.'
+      : won ? '승리 · 모든 적 제거' : '패배 · 모든 목숨 소진';
+    retryScreen.hidden = !awaitingRetry;
+    resultScreen.hidden = awaitingRetry;
     syncDifficulty();
     canvas.focus({ preventScroll: true });
   }
@@ -173,5 +194,6 @@ function frame(time) {
 }
 
 syncDifficulty();
+lives.textContent = String(game.lives);
 draw();
 requestAnimationFrame(frame);

@@ -1,6 +1,6 @@
 # 우주 방어 제품 요구사항
 
-`ideation.md`의 첫 배포 경험을 제품 기준으로 정의한다. [이슈 #7](https://github.com/hahaysh/space-Invaders-demo02/issues/7)의 일시정지와 [이슈 #9의 난이도 공개](https://github.com/hahaysh/space-Invaders-demo02/issues/9#issuecomment-5660296207)는 완료되었다. [이슈 #11](https://github.com/hahaysh/space-Invaders-demo02/issues/11)의 목숨·재도전은 09-01 사용자 위임 승인 설계이며 아직 미구현이다. 아래 방어선 도달 즉시 lost 조건을 목숨 판정으로 명시적으로 대체하고, 그 외 기존 수치·게임/P·난이도 계약은 보존한다.
+`ideation.md`의 첫 배포 경험을 제품 기준으로 정의한다. [이슈 #7](https://github.com/hahaysh/space-Invaders-demo02/issues/7)의 일시정지와 [이슈 #9의 난이도 공개](https://github.com/hahaysh/space-Invaders-demo02/issues/9#issuecomment-5660296207)는 완료되었다. [이슈 #11](https://github.com/hahaysh/space-Invaders-demo02/issues/11)의 목숨·재도전은 09-01 사용자 위임 승인 설계를 09-02에서 구현한다. 아래 방어선 도달 즉시 lost 조건을 목숨 판정으로 명시적으로 대체하고, 그 외 기존 수치·게임/P·난이도 계약은 보존한다. 코드 수용과 실제 공개 완료 근거는 TEST_RESULTS 및 이슈 댓글에서 구분한다.
 
 ## 공통 수치
 
@@ -47,5 +47,5 @@ title → playing → won/lost → 새 게임 흐름과 playing ↔ paused를 �
 title·paused·retry·종료 화면에서는 진행 중 전용 이동·발사를 적용하지 않는다.
 버튼은 키보드로 접근 가능하고 상태·점수·조작 설명은 DOM으로 읽을 수 있게 한다.
 도형 기반의 데스크톱 브라우저 게임이며 적 탄환·적 공격, 외부 이미지/CDN, 로그인, 사운드, 모바일 조작은 제외한다.
-09-01은 목숨·재도전 문서 설계만 수행한다. 09-02 별도 지시 뒤 구현·회귀·빌드 및 병합 후 실제 공개를 확인한다.
+09-01은 목숨·재도전 문서 설계만 수행했다. 09-02는 구현·회귀·빌드와 병합 후 실제 공개를 구분하며 최종 공개 근거는 이슈 #11 댓글에 보존한다.
 자동 레벨 상승·자동 blur 일시정지·위에 정의하지 않은 단축키는 제외하며 기존 P 일시정지·재개는 유지한다.

@@ -42,11 +42,11 @@ M1에는 적·점수·승패·재시작이 없었으며 M2에서 추가했다. �
 | 17 | 08-01 | 완료 (문서 커밋 기준) | 아래 난이도 설계 검토·위임 승인 범위의 다섯 문서. 최종 HEAD/push·17/20 확정은 이슈 #9 단계 댓글에 기록 |
 | 18 | 08-02 | 완료 | PR #10 병합 main `97766d9e`·정확한 배포/공개 난이도 확인, [이슈 #9 완료 근거](https://github.com/hahaysh/space-Invaders-demo02/issues/9#issuecomment-5660296207)에서 누적 18/20 확정 |
 | 19 | 09-01 | 완료 (문서 커밋 기준) | 아래 목숨 설계 검토·위임 승인 범위의 다섯 문서. 최종 HEAD/push·19/20 확정은 이슈 #11 단계 댓글에 기록 |
-| 20 | 09-02 | 예정 | 미실행 |
+| 20 | 09-02 | 진행 | 승인 목숨 구현·Skill 회귀·PR/CI 검토 단계, 최종 공개 전 19/20 유지; 최종 공개 근거는 [이슈 #11 댓글](https://github.com/hahaysh/space-Invaders-demo02/issues/11) 참조 |
 
 앞 단계 커밋 근거는 이슈 #2와 coordinator 전달 내용이다. 이 세션에서 앞 단계를 다시 수행한 것은 아니다.
 
-현재 완료 누적은 **19/20 (09-01 문서 커밋 기준)**이다. 08-02 완료 18/20은 위 원격 공개 근거를 반영했고, 09-02 구현·검증·최종 공개는 아직 미착수다. 아래 이전 실행 기록의 진행/누적 값은 당시 이력으로 보존한다.
+현재 완료 누적은 **19/20**이다. 08-02 완료 18/20은 위 원격 공개 근거를 반영했고, 09-02는 코드 수용·로컬/CI 검증과 병합 후 최종 공개를 구분한다. 최종 공개 완료는 이슈 #11 댓글에서 확정하며 그 기록만을 위한 추가 PR은 만들지 않는다. 아래 이전 실행 기록의 진행/누적 값은 당시 이력으로 보존한다.
 
 ## 04-01 실행 기록
 
@@ -341,3 +341,18 @@ ideation은 첫 공개 대상·재미, AGENTS는 작업 규칙이 바뀌지 않�
 변경은 PRD·TRD·TEST_PLAN·이 계획·README뿐이다. 코드·tests·`.github`·manifest/lock 수정, 설치·게임 검사·build·서버/브라우저 실행·PR·병합·배포는 수행하지 않는다. 목숨 구현과 실제 모델/입력/DOM/Canvas 검증·최종 공개는 미실행이다. 사람 직접 플레이·다른 OS/브라우저·실제 OS 탭 전환·App trust/Run UI·AGENTS/Skill 무요청 자동 적용은 계속 미확인이며 안전 정책 거부를 우회하지 않는다.
 
 다음 행동은 **같은 이슈·세션·feature에서 별도 09-02 전달을 기다리는 것**이다. 지시 뒤 고정 09-02 원문 직접 읽기·Skill 실제 호출부터 구현·전체 회귀·최종 공개를 진행하며 지금은 착수하지 않는다.
+
+## 09-02 구현 전 계획 검토
+
+- 2026-09-14 16:24 +09:00, 별도 위임 지시 후 같은 feature HEAD `df03c0bc0831ffdf62b00869e0915a49845ba6b5`·clean을 확인했다. 고정 SHA의 `docs/09-02-목숨-구현과-재배포.md`를 contents raw API 전문으로 직접 읽고 승인 문서·이슈 본문/전체 댓글·현재 코드/검사/scripts·이전 실제 결과를 대조했다.
+- 첫 액션 `functions.skill({ skill: "game-check" })`의 응답은 `Skill "game-check" loaded successfully. Follow the instructions in the skill context.`였으며 현재 worktree의 skill-context를 받았다. 09-01의 발견만 확인한 이력과 구분한다.
+- 순서: 기존 모델 충돌/갱신 경계에 목숨·retry 전환과 전용 다음 시도 연결 → DOM 목숨·다음 시도 안내/버튼·입력/시계/선택 잠금 → 기존 lost 경계의 승인 기대 전환과 정밀 모델/실제 브라우저 전체 회귀 → build·소유 preview 루트/하위 경로 → 결과·README·diff 검토 → 한국어 상세 commit·정상 feature push·main PR → 실제 CI 완료·diff/리뷰 확인 후 coordinator에게 인도한다.
+- 수치·계약은 PRD를 따른다. 기존 승리 충돌 우선·P·난이도·기본 게임 경계를 삭제하지 않는다. `.github`·manifest/lock·AGENTS·ideation을 변경하지 않고 missing-dependency 실패 뒤에만 설치한다. 전역 모델 노출·브라우저 게임 상태 주입·치트·worker/factory/다른 세션은 사용하지 않는다.
+- 이번 위임은 PR/CI 리뷰까지다. 병합은 coordinator, 최종 공개 확인은 후속 범위다. 실제 게임 결과와 실패/복구는 TEST_RESULTS, PR/CI 및 마지막 공개 근거는 이슈 #11 댓글에 남긴다. 사람 UI 승인·App trust/Run·무요청 자동 적용은 미확인이며 **19/20**을 유지한다.
+
+### 09-02 코드 수용·로컬 검증 및 PR 인도
+
+- 모델은 기존 충돌 우선·playing 갱신 경계를 유지하고 lives·retry 판정·별도 nextAttempt만 연결했다. 다음 시도는 기존 새 판 생성/enterGame 경로를 재사용하며 UI에 목숨·retry 안내/버튼과 입력/시계/선택 잠금을 추가했다. README는 현재 조작으로 갱신하고 공개 URL·직전 근거를 보존했다.
+- 실제 Skill 호출 후 최종 모델 **34/34**, Chromium 전체 **17/17**, build 및 일반시간 preview 루트/하위 경로를 확인했다. 초기 Vite 미설치·초기 목숨 DOM 누락·clock fixture 경합·긴 자연 흐름 timeout과 각각의 수정/최종 복구는 TEST_RESULTS에 보존한다. 기존 경계/예상 수치의 완화·삭제, 게임 전역 API·치트는 없다.
+- 17:07 +09:00 소유 dev/preview 세 PID 부재·5173/4173 LISTEN0과 브라우저 종료를 확인했다. 현재 코드·검사·문서 전체 diff를 검토한 뒤 한국어 상세 커밋·정상 feature push·원격 동일/clean → 코드 수용을 충족한 `Fixes #11` main PR → 실제 CI 완료/build 성공·upload/deploy skipped 및 diff/리뷰 확인 후 coordinator에게 인도한다.
+- 코드 수용 및 로컬/PR CI와 **최종 공개 완료는 별도**다. 병합 전 **09-02 진행, 19/20**을 유지한다. 병합은 coordinator가 수행하며 이후 정확한 main 배포·실제 공개 목숨 소진/재도전 근거는 [이슈 #11 단계 댓글](https://github.com/hahaysh/space-Invaders-demo02/issues/11)에만 보존한다. 최종 공개 기록용 추가 PR 없이 그 원격 근거에서 20/20을 확정한다.

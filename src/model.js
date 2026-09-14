@@ -41,6 +41,7 @@ export const RULES = Object.freeze({
   enemyDrop: 24,
   pointsPerEnemy: 10,
   defenseY: 520,
+  initialLives: 3,
   maxDelta: 0.1,
   step: 1 / 120,
 });
@@ -48,6 +49,7 @@ export const RULES = Object.freeze({
 export function createGame() {
   return {
     status: 'title',
+    lives: RULES.initialLives,
     pendingDifficulty: 'normal',
     currentDifficulty: 'normal',
     player: { x: RULES.playerX, y: RULES.playerY },
@@ -94,6 +96,12 @@ export function restartGame(game) {
   return isFinished(game) ? newRound(game.pendingDifficulty) : game;
 }
 
+export function nextAttempt(game) {
+  return game.status === 'retry'
+    ? { ...newRound(game.currentDifficulty), lives: game.lives }
+    : game;
+}
+
 export function togglePause(game) {
   if (game.status !== 'playing' && game.status !== 'paused') return game;
   return { ...game, status: game.status === 'playing' ? 'paused' : 'playing' };
@@ -129,7 +137,8 @@ function resolveCombat(game) {
   });
   if (game.enemies.length === 0) game.status = 'won';
   else if (game.enemies.some((enemy) => enemy.y + RULES.enemyHeight >= RULES.defenseY)) {
-    game.status = 'lost';
+    game.lives -= 1;
+    game.status = game.lives > 0 ? 'retry' : 'lost';
   }
 }
 

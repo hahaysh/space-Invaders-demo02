@@ -13,13 +13,13 @@
         <p class="eyebrow">SPACE DEFENSE</p>
         <h1>우주 방어</h1>
         <p id="controls">이동: ← → 또는 A / D · 발사: Space 길게 누르기 · 일시정지/재개: P</p>
-        <p>점수: <span id="score">0</span></p>
+        <p>점수: <span id="score">0</span> · 남은 목숨: <span id="lives"></span></p>
         <div class="difficulty-settings">
           <label for="difficulty">다음 판 난이도</label>
           <select id="difficulty" aria-describedby="difficulty-hint"></select>
           <span id="current-difficulty">현재 판: 시작 전</span>
         </div>
-        <p id="difficulty-hint" class="hint">시작·재시작 때 적용됩니다. 진행·일시정지 중에는 변경할 수 없습니다.</p>
+        <p id="difficulty-hint" class="hint">새 게임 시작·재시작 때 적용됩니다. 진행·일시정지·재도전 대기 중에는 변경할 수 없습니다.</p>
         <p id="difficulty-error" role="alert" hidden></p>
       </header>
       <section class="game" aria-label="우주 방어 게임">
@@ -33,6 +33,12 @@
           <button id="start" type="button">게임 시작</button>
           <p class="hint">난이도 선택 중이 아니면 Enter로도 시작할 수 있습니다.</p>
         </div>
+        <div id="retry-screen" class="overlay" hidden>
+          <h2>재도전 대기</h2>
+          <p>적이 방어선에 도달해 목숨을 잃었습니다. 이번 시도의 점수를 확인하세요.</p>
+          <button id="next-attempt" type="button">다음 시도</button>
+          <p class="hint">Enter로도 다음 시도를 시작합니다. 목숨과 현재 난이도는 유지하고 점수는 새로 시작합니다.</p>
+        </div>
         <div id="result-screen" class="overlay" hidden>
           <h2 id="result-title"></h2>
           <p id="result-description"></p>
@@ -41,7 +47,7 @@
         </div>
       </section>
       <p id="status" role="status">시작 대기</p>
-      <p class="hint">모든 적을 제거하면 승리합니다. 적이 점선 방어선에 닿으면 패배합니다.</p>
+      <p class="hint">모든 적을 제거하면 승리합니다. 적이 점선 방어선에 닿으면 목숨을 잃고, 남은 목숨이 없으면 패배합니다.</p>
     </main>
     <script type="module" src="/src/main.js"></script>
   </body>
