@@ -295,3 +295,59 @@ E2E runner는 정상 종료했고 별도 수동 Playwright 페이지나 preview 
 - **실제 방법:** 해당 run 아티팩트와 공개 HTML·JS·CSS·favicon 네 파일의 HTTPS 200·MIME·바이트 완전 일치를 확인했다. Playwright Chromium에서 clock 가속·모델 주입 없이 일반시간 keyboard/click과 DOM·Canvas 읽기로 제목·버튼/Enter 시작·좌우 이동·발사·적/점수·자연 승패·종료 정지·R/버튼 재시작을 확인했다. 정밀 경계의 기존 모델/controlled clock 검사와 별개인 공개 스모크 근거다. [상세 공개 증거](https://github.com/hahaysh/space-Invaders-demo02/issues/4#issuecomment-5659428787).
 - **공개 관찰 실패와 복구:** 정지 clock의 적 완전색 면적을 일반시간에 그대로 요구한 [최초 assertion 실패](https://github.com/hahaysh/space-Invaders-demo02/issues/4#issuecomment-5659399343)는 삭제하지 않는다. 읽기전용 Canvas 연결영역 검사로 적 24개와 부분픽셀 래스터화에 따른 면적 차이를 확인하고 명중 후 개체수·점수 대응으로 검증했다. 제품 실패나 제품 수정으로 기록하지 않는다. console error는 없었고 Canvas readback 성능 권고 경고 3건은 위 상세 증거에 남아 있다.
 - **남은 범위:** 사람의 직접 플레이·App UI 승인/trust/Run·지침 자동 적용·다른 OS/브라우저/모바일은 미확인이다. 사용자 위임 자동 실행을 인간 UI 행위로 간주하지 않는다. 이번 한 번의 기록 PR 병합과 동일 게임 코드의 재공개 응답·자산·기본 시작 확인 전까지 **06-03 진행, 누적 13/20**이다. 병합 뒤 결과는 이슈 #4 댓글에만 남기며 추가 기록 PR을 만들지 않는다.
+
+## 07-02 일시정지 구현·Skill 검증 (병합·공개 전)
+
+2026-09-14, 같은 격리 feature `hahaysh-space-defense-pause`의 문서 HEAD `7300acc21ff09a2d6b11fac46b96f06ab5572e95`에서 사용자 위임으로 구현·검증했다. 기반 main은 `bda40293c959bb6af8c01147b105ebd17f2930ab`이다. 06-03 완료는 [이전 최종 공개 댓글](https://github.com/hahaysh/space-Invaders-demo02/issues/4#issuecomment-5659560168), 07-01 완료는 [문서 커밋 댓글](https://github.com/hahaysh/space-Invaders-demo02/issues/7#issuecomment-5659623489)에서 확인했다.
+
+### 실제 Skill 호출·방법
+
+- 14:55 +09:00 첫 액션 `functions.skill({ skill: "game-check" })`는 **`Skill "game-check" loaded successfully. Follow the instructions in the skill context.`**를 반환했다. 제공된 skill-context의 Base directory는 현재 worktree의 `.github\skills\game-check`다. 파일 view가 아닌 명시적 도구 호출/로드 성공이다.
+- 고정 SHA `3637e1ad7897a2e674aa85cb8f3f6154da4b3907`의 `docs/07-02-일시정지-구현과-재배포.md`를 contents raw API 전문으로 읽고 승인 PRD/TRD/TEST_PLAN·AGENTS·기존 코드/tests·scripts·결과·이슈 전체 댓글을 검토했다.
+- 순수 모델은 제어 상태·delta로 정밀 경계를 검사한다. Chromium E2E는 실제 키/버튼과 DOM·Canvas 및 Playwright clock을 사용한다. blur/hidden 및 일부 repeat/defaultPrevented는 합성 이벤트이며 실제 OS 탭 전환이 아니다.
+- 별도 preview 검사는 clock 설치/가속 없이 일반시간의 실제 keyboard/click과 읽기전용 DOM/Canvas로 수행했다. 앱 모델 전역 노출·치트·브라우저 게임 상태 주입은 없다. 모델 테스트의 제어 배치를 브라우저 플레이로 주장하지 않는다.
+
+### 실행 결과와 실제 실패
+
+환경: Windows, Node `v24.14.1`, npm `10.8.3`, Vite `8.2.2`, Playwright `1.63.0`. 시간은 2026-09-14 +09:00, 소요 시간은 각 runner 출력이다.
+
+| 시각 | 명령·관찰 | 결과 |
+|---|---|---|
+| 14:56 | 최초 `npm run build` | **실패**: `'vite' is not recognized`, 새 worktree의 의존성 미설치. 게임 assertion 실패가 아님 |
+| 14:57 | `npm ci --no-fund --no-audit --registry=https://registry.npmjs.org` | 위 실제 missing-dependency 후에만 실행, 18개/4초. manifest·lock diff 없음. [즉시 이슈 기록](https://github.com/hahaysh/space-Invaders-demo02/issues/7#issuecomment-5659670976) |
+| 14:59 | `npm test` | **23/23 통과, fail 0, 321.2114ms**. 기존 19개와 일시정지 4개 |
+| 14:59 | `npm run build` | **성공, 637ms**. 의존성 실패 복구 확인 |
+| 14:59~15:01 | 소유 dev의 PID·명령·5173 HTTP 확인 후 `npm run test:e2e` | **11/11 통과, 1.5분**. 기존 8개(자연 패배/반복 재시작 39.6초, 자연 승리 9.6초) 및 새 정지 3개(13.8/4.0/6.3초). Chromium 추가 설치 없음 |
+| 15:02 | 소유 루트 preview·새로고침·시작 버튼/ArrowRight/Space/P/A | HTTP 200, 일반시간 우주선 x=381→440→397, 정지 탄환 33픽셀·점수 0. 350ms 정지 Canvas 전체 이미지·점수 불변, 재개 후 진행/이동 확인 |
+| 15:03~15:04 | 소유 하위 경로 preview·새로고침·Enter/A/Space/P/D | 일반시간 x=381→323→381, 정지 탄환 33픽셀·점수 0. 반복 P 무시 및 300ms Canvas/점수 불변, 재개/이동 확인. 문서·자산 응답 4개 모두 하위 경로 200 |
+| 15:03~15:04 | 각 preview에서 별도 Node fetch/Buffer 비교 | 루트와 `/space-Invaders-demo02/` 각각 HTML·favicon·JS·CSS 4개 모두 200/정상 MIME 및 dist와 bytes 완전일치. HTML 1912B, SVG 171B, JS 6028B, CSS 963B |
+| 15:04~15:05 | screenshot·소유 자원 종료·PID/포트 확인 | 아래 이미지 구분 참조. 소유 브라우저 close `No open tabs`, PID 3개 없음, 5173/4173 LISTEN **0** |
+| 15:07~15:08 | `npm run test:e2e -- --grep 'natural defeat\|P freezes\|repeated P resumes'` | **3/3, 1.1분**(38.0/14.2/9.7초). 코드 검토에서 기존 rAF 관찰 코드를 공통 헬퍼로 추출하고 playing에서도 실제 P repeat 무시를 보강한 뒤 영향받는 세 검사 재실행. 제품 코드는 불변 |
+
+실행한 모델/E2E/build의 제품 assertion 실패는 없었다. 실패를 만들거나 기대값을 낮추지 않았다. 최초 build 실패는 공개 registry 설치 뒤 정상 build로 복구했으며 의존성 파일을 바꾸지 않았다.
+
+### 수용 기준과 관찰 근거
+
+- R01~R10: 기존 모델 19개·브라우저 8개를 삭제하지 않고 전체 실행했다. title의 P 무시, 자연 won/lost의 P 무시 후 Canvas 정지·R/버튼 재시작도 기존 경로에 추가했다. 승패 우선순위·점수·초기화·이동/발사/반대 입력·blur 입력 비움은 유지된다.
+- R11: 모델의 status 외 모든 필드/중첩 참조 보존·비대상 상태의 같은 객체 반환, 실제 P 전환·DOM 한국어 안내, 실제 반복 keydown/합성 repeat 무시, paused Enter/R 무시를 확인했다.
+- R12 모델: 탄환과 남은 cooldown이 있는 상태에서 0·짧은·긴 delta에도 전체 상태가 불변이며 잘못된 delta 오류 계약을 보존한다. 정지 중 충돌·방어선 판정을 지연하고 재개 시 기존 승패 우선순위를 적용한다. 반복 정지 시간은 elapsed에 포함하지 않으며 남은 cooldown 직전에는 발사하지 않고 경계에서 정상 발사한다. 동일 활성 시간·입력의 비정지 대조 모델과 재개 결과가 일치한다.
+- R12 브라우저: 정지 장면 전체 이미지/점수 불변, 정지 중 입력 및 누른 채 전환한 입력의 repeat 재유입 방지, 새 입력으로 정상 재개, 합성 blur/hidden 때 paused 유지, Space 스크롤 방지를 확인했다. 5회 P 왕복 각각 첫 재개 rAF의 Canvas를 정지 장면과 비교하고 실제 rAF 경과 시간 × PRD 속도로 적·플레이어 이동을 검사했다. 재개 후 탄환 속도·발사 간격도 검사했다.
+- 단일 루프는 속도 결과만으로 단정하지 않는다. 코드 diff에서 기존 초기 rAF 1회와 frame 끝의 다음 예약 1개가 그대로이며 P 핸들러에 새 루프/리스너가 없음을 직접 검토했다. delta 제한만으로 정지 시간 제외를 대신하지 않고 전환 시 `previousTime = null`로 첫 프레임을 0 delta로 만든다.
+- README/UI의 P·상태·재개 입력 안내를 대조했다. 공개 URL은 그대로 보존했으며 이번 로컬 확인을 공개 재배포로 기록하지 않는다.
+
+### 소유 자원·이미지·미확인
+
+| shell | PID / 부모 PID | 주소·종료 |
+|---|---|---|
+| `pause-dev` | 41136 / 39720 | `http://127.0.0.1:5173/`, HTTP 200·현재 worktree strictPort 확인, 소유 shell 종료 |
+| `pause-preview-root` | 19660 / 37976 | `http://127.0.0.1:4173/`, HTTP 200·현재 worktree strictPort 확인, 소유 shell 종료 |
+| `pause-preview-subpath` | 35216 / 35688 | `http://127.0.0.1:4173/space-Invaders-demo02/`, HTTP 200·현재 worktree strictPort/base 확인, 소유 shell 종료 |
+| `pause-dev-recheck` | 44044 / 37752 | `http://127.0.0.1:5173/`, HTTP 200·현재 worktree strictPort 확인, 관련 재검사 후 소유 shell 종료 |
+
+15:05:04 +09:00에 세 PID 부재와 두 포트 LISTEN 0을 재확인했다. 모르는 PID는 종료하지 않았다. 설치·빌드·E2E의 ignored 산출물은 추적 파일/clean 여부와 구분한다.
+관련 재검사를 위한 네 번째 서버도 종료했으며 15:08:59에 위 네 PID 부재와 5173/4173 LISTEN 0을 최종 재확인했다.
+
+preview 관리 Chromium은 `153.0.8010.36`이며 두 페이지 모두 console/page error 0이다. 루트 새로고침 JS/CSS 304는 정상 캐시이며 별도 fetch는 200/바이트 동일이었다. Canvas readback 성능 권고 경고는 각 페이지 1건이고 오류가 아니다.
+`pause-preview-root.png`와 `pause-preview-subpath.png`는 세션 아티팩트에 보존하고 저장소에 넣지 않았다. 루트 이미지 view는 도구 표시 한도로 실제 시각 확인을 제공하지 못했으며, 하위 경로 full-page 이미지는 실제 표시되어 제목/P 안내·편대·탄환·플레이어·방어선·일시정지/P 재개 문구를 확인했다.
+
+사람 직접 플레이·다른 OS/브라우저/모바일·실제 OS 탭 전환·App trust/Run UI·인간 UI 승인·AGENTS/Skill 무요청 자동 적용은 계속 미확인이다. 이전 안전 정책 거부를 우회하지 않았다. **07-02는 진행, 누적 15/20**이며 원격 PR CI/리뷰는 제출 후 이슈 댓글에, 병합·main 실제 배포·공개 P 확인은 coordinator의 후속 범위로 남긴다. 공개 후 기록용 추가 PR은 만들지 않는다.

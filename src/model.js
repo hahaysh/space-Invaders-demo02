@@ -54,6 +54,11 @@ export function restartGame(game) {
   return isFinished(game) ? startGame(createGame()) : game;
 }
 
+export function togglePause(game) {
+  if (game.status !== 'playing' && game.status !== 'paused') return game;
+  return { ...game, status: game.status === 'playing' ? 'paused' : 'playing' };
+}
+
 function moveEnemies(game, dt) {
   const left = Math.min(...game.enemies.map((enemy) => enemy.x));
   const right = Math.max(...game.enemies.map((enemy) => enemy.x + RULES.enemyWidth));

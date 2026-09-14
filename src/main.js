@@ -1,4 +1,4 @@
-import { createGame, isFinished, restartGame, RULES, startGame, updateGame } from './model.js';
+import { createGame, isFinished, restartGame, RULES, startGame, togglePause, updateGame } from './model.js';
 
 const canvas = document.querySelector('#game');
 const context = canvas.getContext('2d');
@@ -47,13 +47,26 @@ window.addEventListener('keydown', (event) => {
   } else if (isFinished(game) && event.code === 'KeyR') {
     event.preventDefault();
     if (!event.repeat) enterGame(restartGame(game));
-  } else if (game.status === 'playing' && movementKeys.has(event.code)) {
+  } else if ((game.status === 'playing' || game.status === 'paused') && event.code === 'KeyP') {
     event.preventDefault();
-    keys.add(event.code);
+    if (!event.repeat) {
+      game = togglePause(game);
+      clearInput();
+      previousTime = null;
+      status.textContent = game.status === 'paused'
+        ? '일시정지 · P로 재개하세요.'
+        : '진행 중 · 적 편대를 막아 주세요.';
+      draw();
+    }
+  } else if ((game.status === 'playing' || game.status === 'paused') && movementKeys.has(event.code)) {
+    event.preventDefault();
+    if (game.status === 'playing' && !event.repeat) keys.add(event.code);
   }
 });
 window.addEventListener('keyup', (event) => {
-  if (game.status === 'playing' && movementKeys.has(event.code)) event.preventDefault();
+  if ((game.status === 'playing' || game.status === 'paused') && movementKeys.has(event.code)) {
+    event.preventDefault();
+  }
   keys.delete(event.code);
 });
 window.addEventListener('blur', clearInput);
