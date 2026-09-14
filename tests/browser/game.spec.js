@@ -7,11 +7,13 @@ async function pixels(page, color) {
     let maxX = -1;
     let minY = canvas.height;
     let maxY = -1;
+    let count = 0;
     const rows = new Set();
     for (let y = 0; y < canvas.height; y++) {
       for (let x = 0; x < canvas.width; x++) {
         const i = (y * canvas.width + x) * 4;
         if (data[i] === rgb[0] && data[i + 1] === rgb[1] && data[i + 2] === rgb[2]) {
+          count++;
           minX = Math.min(minX, x);
           maxX = Math.max(maxX, x);
           minY = Math.min(minY, y);
@@ -22,12 +24,25 @@ async function pixels(page, color) {
     }
     let groups = 0;
     for (const row of rows) if (!rows.has(row - 1)) groups++;
-    return { minX, maxX, minY, maxY, groups };
+    return { minX, maxX, minY, maxY, groups, count };
   }, color);
 }
 
 const player = (page) => pixels(page, [97, 230, 196]);
 const bullets = (page) => pixels(page, [255, 223, 128]);
+const enemies = (page) => pixels(page, [166, 155, 255]);
+const canvasImage = (page) => page.locator('canvas').evaluate((canvas) => canvas.toDataURL());
+
+async function expectFreshGame(page) {
+  await expect(page.getByRole('status')).toContainText('진행 중');
+  await expect(page.locator('#score')).toHaveText('0');
+  await expect(page.getByRole('button', { name: '다시 시작' })).toBeHidden();
+  expect(await enemies(page)).toEqual({
+    minX: 112, maxX: 655, minY: 72, maxY: 191, groups: 3, count: 23040,
+  });
+  expect((await player(page)).minX).toBe(381);
+  expect((await bullets(page)).groups).toBe(0);
+}
 
 test.beforeEach(async ({ page }) => {
   const errors = [];
@@ -102,13 +117,16 @@ test('Space fires upward repeatedly with interval and releases without scrolling
   await page.setViewportSize({ width: 1100, height: 700 });
   await page.keyboard.press('Enter');
   await page.clock.runFor(32);
+  await page.keyboard.down('ArrowLeft');
+  await page.clock.runFor(1300);
+  await page.keyboard.up('ArrowLeft');
   const scrollBefore = await page.evaluate(() => window.scrollY);
   await page.keyboard.down('Space');
   await page.clock.runFor(16);
   const first = await bullets(page);
   expect(first.groups).toBe(1);
-  expect(first.minX).toBe(398);
-  expect(first.maxX).toBe(401);
+  expect(first.minX).toBe(18);
+  expect(first.maxX).toBe(21);
   expect(first.maxY).toBeLessThan(550);
   await page.clock.runFor(160);
   const rising = await bullets(page);
@@ -175,4 +193,98 @@ test('repeat Enter is ignored and only current game keys prevent browser default
   expect(await dispatch('KeyZ')).toBe(false);
   expect(await dispatch('Enter')).toBe(false);
   expect(await dispatch('KeyR')).toBe(false);
+});
+
+test('formation moves right, reverses with a drop, and real hits change score and pixels', async ({ page }) => {
+  await page.keyboard.press('Enter');
+  await expectFreshGame(page);
+  await page.clock.runFor(32);
+  const initial = await enemies(page);
+  await page.clock.runFor(1000);
+  const moved = await enemies(page);
+  expect(moved.minX - initial.minX).toBeGreaterThanOrEqual(63);
+  expect(moved.minX - initial.minX).toBeLessThanOrEqual(65);
+  expect(moved.minY).toBe(72);
+  await page.clock.runFor(1300);
+  const dropped = await enemies(page);
+  expect(dropped.minY).toBe(96);
+  await page.clock.runFor(100);
+  expect((await enemies(page)).minX).toBeLessThan(dropped.minX);
+  await page.keyboard.down('Space');
+  await page.clock.runFor(1500);
+  await page.keyboard.up('Space');
+  expect(Number(await page.locator('#score').innerText())).toBeGreaterThan(0);
+  expect((await enemies(page)).count).toBeLessThan(dropped.count);
+});
+
+test('natural defeat freezes the canvas and supports repeated fresh restarts by R and button', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.keyboard.press('Enter');
+  await page.clock.runFor(54_000);
+  await page.keyboard.down('ArrowRight');
+  await page.clock.runFor(1000);
+  await expect(page.getByRole('heading', { name: '패배', exact: true })).toBeVisible();
+  await expect(page.locator('#result-description')).toHaveText('적이 방어선에 도달했습니다.');
+  await expect(page.locator('#score')).toHaveText('0');
+  const frozen = await canvasImage(page);
+  await page.keyboard.down('Space');
+  await page.clock.runFor(1000);
+  expect(await canvasImage(page)).toBe(frozen);
+  await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', {
+    code: 'KeyR', repeat: true, bubbles: true, cancelable: true,
+  })));
+  await expect(page.getByRole('heading', { name: '패배', exact: true })).toBeVisible();
+  await page.keyboard.press('r');
+  await expectFreshGame(page);
+  await page.clock.runFor(100);
+  expect((await player(page)).minX).toBe(381);
+  expect((await bullets(page)).groups).toBe(0);
+  await page.keyboard.up('ArrowRight');
+  await page.keyboard.up('Space');
+  await page.clock.runFor(55_000);
+  await expect(page.getByRole('heading', { name: '패배', exact: true })).toBeVisible();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: '다시 시작' })).toBeFocused();
+  await page.getByRole('button', { name: '다시 시작' }).click();
+  await expectFreshGame(page);
+  await page.clock.runFor(32);
+  await page.keyboard.down('d');
+  await page.keyboard.down('Space');
+  await page.clock.runFor(100);
+  await page.keyboard.up('d');
+  await page.keyboard.up('Space');
+  const moved = await player(page);
+  expect(moved.minX).toBeGreaterThanOrEqual(411);
+  expect(moved.minX).toBeLessThanOrEqual(416);
+  expect((await bullets(page)).groups).toBe(1);
+});
+
+test('natural firing sweep wins, freezes remaining bullets, and restarts with clean score and input', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.getByRole('button', { name: '게임 시작' }).click();
+  await page.clock.runFor(32);
+  await page.keyboard.down('Space');
+  for (let turn = 0; turn < 20; turn++) {
+    const direction = turn % 2 === 0 ? 'ArrowRight' : 'ArrowLeft';
+    await page.keyboard.down(direction);
+    await page.clock.runFor(3000);
+    await page.keyboard.up(direction);
+    if (await page.getByRole('button', { name: '다시 시작' }).isVisible()) break;
+  }
+  await expect(page.getByRole('heading', { name: '승리!', exact: true })).toBeVisible();
+  await expect(page.locator('#result-description')).toHaveText('모든 적을 제거했습니다.');
+  await expect(page.locator('#score')).toHaveText('240');
+  expect((await enemies(page)).count).toBe(0);
+  const frozen = await canvasImage(page);
+  await page.keyboard.down('ArrowLeft');
+  await page.clock.runFor(2000);
+  expect(await canvasImage(page)).toBe(frozen);
+  await expect(page.locator('#score')).toHaveText('240');
+  await page.getByRole('button', { name: '다시 시작' }).click();
+  await expectFreshGame(page);
+  await page.clock.runFor(100);
+  expect((await player(page)).minX).toBe(381);
+  expect((await bullets(page)).groups).toBe(0);
+  await page.keyboard.up('Space');
+  await page.keyboard.up('ArrowLeft');
 });

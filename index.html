@@ -10,9 +10,10 @@
   <body>
     <main>
       <header>
-        <p class="eyebrow">SPACE DEFENSE · M1</p>
+        <p class="eyebrow">SPACE DEFENSE</p>
         <h1>우주 방어</h1>
         <p id="controls">이동: ← → 또는 A / D · 발사: Space 길게 누르기</p>
+        <p>점수: <span id="score">0</span></p>
       </header>
       <section class="game" aria-label="우주 방어 게임">
         <canvas id="game" width="800" height="600" tabindex="-1"
@@ -21,13 +22,19 @@
         </canvas>
         <div id="title-screen" class="overlay">
           <h2>출격 준비</h2>
-          <p>우주선을 움직이고 위로 발사해 보세요.</p>
+          <p>모든 적을 제거하고 방어선을 지켜 주세요.</p>
           <button id="start" type="button">게임 시작</button>
           <p class="hint">Enter로도 시작할 수 있습니다.</p>
         </div>
+        <div id="result-screen" class="overlay" hidden>
+          <h2 id="result-title"></h2>
+          <p id="result-description"></p>
+          <button id="restart" type="button">다시 시작</button>
+          <p class="hint">R로도 다시 시작할 수 있습니다.</p>
+        </div>
       </section>
       <p id="status" role="status">시작 대기</p>
-      <p class="hint">첫 구현 단계입니다. 적·점수·승패는 아직 없습니다.</p>
+      <p class="hint">모든 적을 제거하면 승리합니다. 적이 점선 방어선에 닿으면 패배합니다.</p>
     </main>
     <script type="module" src="/src/main.js"></script>
   </body>

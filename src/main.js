@@ -1,9 +1,14 @@
-import { createGame, RULES, startGame, updateGame } from './model.js';
+import { createGame, isFinished, restartGame, RULES, startGame, updateGame } from './model.js';
 
 const canvas = document.querySelector('#game');
 const context = canvas.getContext('2d');
 const titleScreen = document.querySelector('#title-screen');
 const startButton = document.querySelector('#start');
+const resultScreen = document.querySelector('#result-screen');
+const resultTitle = document.querySelector('#result-title');
+const resultDescription = document.querySelector('#result-description');
+const restartButton = document.querySelector('#restart');
+const score = document.querySelector('#score');
 const status = document.querySelector('#status');
 const keys = new Set();
 const movementKeys = new Set(['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD', 'Space']);
@@ -20,22 +25,28 @@ function clearInput() {
   keys.clear();
 }
 
-function begin() {
-  if (game.status !== 'title') return;
-  game = startGame(game);
+function enterGame(next) {
+  if (next === game) return;
+  game = next;
   clearInput();
   previousTime = null;
   titleScreen.hidden = true;
-  status.textContent = '진행 중 · 이동과 발사를 연습하세요.';
+  resultScreen.hidden = true;
+  status.textContent = '진행 중 · 적 편대를 막아 주세요.';
+  score.textContent = String(game.score);
   canvas.focus({ preventScroll: true });
   draw();
 }
 
-startButton.addEventListener('click', begin);
+startButton.addEventListener('click', () => enterGame(startGame(game)));
+restartButton.addEventListener('click', () => enterGame(restartGame(game)));
 window.addEventListener('keydown', (event) => {
   if (game.status === 'title' && event.code === 'Enter') {
     event.preventDefault();
-    if (!event.repeat) begin();
+    if (!event.repeat) enterGame(startGame(game));
+  } else if (isFinished(game) && event.code === 'KeyR') {
+    event.preventDefault();
+    if (!event.repeat) enterGame(restartGame(game));
   } else if (game.status === 'playing' && movementKeys.has(event.code)) {
     event.preventDefault();
     keys.add(event.code);
@@ -53,7 +64,20 @@ document.addEventListener('visibilitychange', () => {
 function draw() {
   context.fillStyle = '#0c1630';
   context.fillRect(0, 0, RULES.width, RULES.height);
-  if (game.status !== 'playing') return;
+  if (game.status === 'title') return;
+
+  context.strokeStyle = '#e58b9b';
+  context.setLineDash([8, 8]);
+  context.beginPath();
+  context.moveTo(0, RULES.defenseY);
+  context.lineTo(RULES.width, RULES.defenseY);
+  context.stroke();
+  context.setLineDash([]);
+
+  context.fillStyle = '#a69bff';
+  for (const enemy of game.enemies) {
+    context.fillRect(enemy.x, enemy.y, RULES.enemyWidth, RULES.enemyHeight);
+  }
 
   context.fillStyle = '#61e6c4';
   context.beginPath();
@@ -72,11 +96,23 @@ function draw() {
 function frame(time) {
   const delta = previousTime === null ? 0 : (time - previousTime) / 1000;
   previousTime = time;
+  const previousStatus = game.status;
   updateGame(game, delta, {
     left: keys.has('ArrowLeft') || keys.has('KeyA'),
     right: keys.has('ArrowRight') || keys.has('KeyD'),
     fire: keys.has('Space'),
   });
+  if (score.textContent !== String(game.score)) score.textContent = String(game.score);
+  if (previousStatus !== game.status && isFinished(game)) {
+    clearInput();
+    previousTime = null;
+    const won = game.status === 'won';
+    resultTitle.textContent = won ? '승리!' : '패배';
+    resultDescription.textContent = won ? '모든 적을 제거했습니다.' : '적이 방어선에 도달했습니다.';
+    status.textContent = won ? '승리 · 모든 적 제거' : '패배 · 방어선 도달';
+    resultScreen.hidden = false;
+    canvas.focus({ preventScroll: true });
+  }
   draw();
   requestAnimationFrame(frame);
 }
