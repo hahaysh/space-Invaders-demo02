@@ -351,3 +351,58 @@ preview 관리 Chromium은 `153.0.8010.36`이며 두 페이지 모두 console/pa
 `pause-preview-root.png`와 `pause-preview-subpath.png`는 세션 아티팩트에 보존하고 저장소에 넣지 않았다. 루트 이미지 view는 도구 표시 한도로 실제 시각 확인을 제공하지 못했으며, 하위 경로 full-page 이미지는 실제 표시되어 제목/P 안내·편대·탄환·플레이어·방어선·일시정지/P 재개 문구를 확인했다.
 
 사람 직접 플레이·다른 OS/브라우저/모바일·실제 OS 탭 전환·App trust/Run UI·인간 UI 승인·AGENTS/Skill 무요청 자동 적용은 계속 미확인이다. 이전 안전 정책 거부를 우회하지 않았다. **07-02는 진행, 누적 15/20**이며 원격 PR CI/리뷰는 제출 후 이슈 댓글에, 병합·main 실제 배포·공개 P 확인은 coordinator의 후속 범위로 남긴다. 공개 후 기록용 추가 PR은 만들지 않는다.
+
+## 08-02 난이도 구현·Skill 검증 (병합·공개 전)
+
+2026-09-14, 같은 격리 feature `hahaysh-space-defense-difficulty`의 문서 HEAD `9cdd019c71efd11e7441979b700340a518bd0f23`에서 사용자 위임으로 구현·검증한다. 기준 main은 `a7a8259728f61e71722b8e1e709c9a9ebd2934ee`다. 08-01의 문서 검토와 이번 실제 실행은 구분한다.
+
+### 실제 Skill·계획 및 실행 기록
+
+- 15:32 +09:00 첫 액션 `functions.skill({ skill: "game-check" })`가 **`Skill "game-check" loaded successfully. Follow the instructions in the skill context.`**를 반환했다. 제공 Base directory는 현재 worktree의 `.github\skills\game-check`다. 단순 파일 읽기·무요청 자동 적용이 아닌 명시적 도구 호출/로드다.
+- 고정 SHA `3637e1ad7897a2e674aa85cb8f3f6154da4b3907`의 08-02 안내서를 contents raw API로 직접 전문 읽고 승인 문서·이슈 전체 댓글·기존 코드/tests/scripts·관련 이전 결과를 검토했다. 순서는 IMPLEMENTATION_PLAN의 08-02 절을 따른다.
+- 환경: Windows, Node `v24.14.1`, npm `10.8.3`. 다음 시각은 2026-09-14 +09:00이다.
+
+| 시각 | 명령·관찰 | 실제 결과 |
+|---|---|---|
+| 15:35 | `npm test` | **31/31 통과, fail 0, 193.3998ms**. 기존 23개와 난이도 8개, 정밀 시간·세 속도·양쪽 경계·모델 잠금·invalid·P cooldown 보존 |
+| 15:35 | 최초 `npm run build` | **실패**: `'vite' is not recognized`, 새 worktree 의존성 미설치. 이 실제 missing-dependency 실패 뒤에만 공개 registry `npm ci`를 진행한다 |
+| 15:35 | 5173/4173 LISTEN 조회 | **0개**. 다른 서버를 재사용하거나 종료하지 않았다 |
+| 15:36 | `npm ci --no-fund --no-audit --registry=https://registry.npmjs.org` 후 `npm run build` | 18개/3초 설치, build **615ms 성공**, manifest/lock diff 없음. [첫 실패 즉시 기록](https://github.com/hahaysh/space-Invaders-demo02/issues/9#issuecomment-5660018571) |
+| 15:37~15:39 | 소유 dev PID 40536/부모 33564·현재 worktree strictPort·HTTP 200 확인 후 `npm run test:e2e` | **12 통과 / 4 실패, 2.2분**. 기존 게임/P·자연 승패/재시작 및 invalid UI는 통과, native select 최초값과 세 난이도 새로고침에서 보통 대신 쉬움 표시 |
+
+첫 E2E 실패 원인은 `syncDifficulty()`를 최초 렌더링 전이 아니라 frame 내부에 잘못 배치한 UI 결함이다. 정지된 clock의 초기 DOM에는 native select의 첫 항목이 남았다. 최초 rAF 이전에 동기화하고 매 프레임 select 값 덮어쓰기를 제거해 native 선택 조작도 보존하도록 수정했다. 상태/선택 전환의 동기화는 유지하며 기대값을 낮추지 않는다.
+
+- 15:40 `npm run test:e2e -- --grep "native select|selection drives"`: **3 통과/1 실패, 23.6초**. 세 속도의 Canvas/P/잠금/새로고침은 복구되었다. native 검사는 초기값·화살표·Space/Enter 선택·미시작을 통과한 뒤 Tab 포커스에서 실패했다.
+- 15:40~15:41 일반시간 관리 Chromium의 실제 키와 읽기전용 DOM으로 원인을 재현했다. Space로 연 native 선택을 Enter로 확정한 뒤 테스트의 불필요한 두 번째 Enter가 메뉴를 다시 열었다. 그 상태의 첫 Tab은 닫기, 두 번째 Tab은 시작 버튼 이동으로 관찰되었다. 게임 핸들러의 키 가로채기가 아닌 native 메뉴 상태를 무시한 검사 순서 문제다. 실제 Enter 선택 확정은 그대로 두고 불필요한 재열기만 제거했다. 제품 코드·포커스 기대값·기본 동작 검사를 완화하지 않았다.
+
+### 최종 로컬 회귀·배포본 확인
+
+| 시각 | 명령·관찰 | 실제 결과 |
+|---|---|---|
+| 15:41~15:43 | `npm run test:e2e && npm run build` | **Chromium 16/16 통과, 1.5분**, build **115ms 성공**. 두 실패 원인의 복구와 기존 전체 회귀 확인 |
+| 15:43~15:44 | 소유 루트 preview·새로고침·실제 Tab/화살표/Space/Enter 선택·시작·이동/발사/P | 어려움 선택→Space 버튼 시작, 현재 판/잠금 확인, 우주선 x381→445·탄환88픽셀. 400ms 정지 Canvas 전체 이미지·점수 불변, 재개·다시 새로고침 보통 확인 |
+| 15:45 | 소유 하위 경로 preview·새로고침·실제 Tab/ArrowUp/Space/Enter 선택·시작·A/Space/P/D | 쉬움 선택→Enter 버튼 시작, x381→317→365·탄환88픽셀. P repeat 무시, 400ms 정지 Canvas/점수 불변, 재개 후 새 입력 이동·다시 P 정지 확인 |
+| 15:44~15:45 | 각 preview의 Node fetch/Buffer 비교 | 루트와 `/space-Invaders-demo02/` 각각 HTML·favicon·JS·CSS 네 파일 모두 HTTP 200/정상 MIME·dist bytes 완전일치. HTML2427B, SVG171B, JS7349B, CSS1158B |
+| 15:45~15:46 | 하위 경로 screenshot/view·소유 브라우저/서버 종료·PID/포트 조회 | 이미지에서 레이블·쉬움 잠금/current·P 안내·편대·탄환·우주선·방어선 확인. 소유 PID 세 개 없음, 5173/4173 LISTEN0, Playwright `No open tabs` |
+
+### 수용 기준·관찰 방법
+
+- 모델 **31/31**은 기존 23개를 보존하고 난이도 8개를 추가한 결과다. 각 속도의 실제 활성 시간과 변위·양쪽 경계/잔여 이동/하강을 고정 PRD 기대값으로 확인했다. 모든 허용값×5상태의 직접 모델 선택에서 pending만 변경/잠금, title/won/lost 시작·재시작의 전체 초기화와 current 적용, 새 모델 보통을 검사했다.
+- invalid는 빈 값·알 수 없는 문자열·대소문자·상속 속성명·null/undefined·숫자/객체/배열/NaN까지 명시 오류 및 전체 상태 무변경으로 검사했다. 잘못된 pending의 시작/재시작과 current의 갱신에서 부분 변경·silent fallback이 없다. 각 난이도에서 반복 P·정지 중 선택 거부·전체 필드 동결과 남은 cooldown 직전/경계 발사도 확인했다.
+- Chromium **16/16**은 기존 11개와 신규 5개다. 실제 Tab·화살표·Space·Enter로 native 선택 후 버튼에 이동해 시작하고, select 입력의 미시작·Canvas 미진행과 양쪽 키 이벤트의 기본 동작 비차단을 확인했다. 각 난이도에서 실제 관찰 rAF 시간×속도를 Canvas 변위와 비교하고 playing/paused 잠금·P·새로고침 보통을 확인했다.
+- 자연 패배 뒤 어려움 선택/R 재시작, 다음 패배 뒤 쉬움 선택/버튼 재시작, 자연 승리 뒤 쉬움 선택/재시작에서 이전 current·종료 Canvas 보존 및 다음 판 적용을 확인했다. 점수·승패·기본 게임·P 전체 회귀를 삭제하지 않았다. README의 선택/현재 판·키·잠금/재개·초기값 안내와 실제 UI를 대조했다.
+- E2E 시간은 Playwright clock이다. defaultPrevented/blur/hidden/repeat와 비활성 select의 직접 change·invalid option/change는 합성 이벤트/DOM 검사이며 실제 사용자 선택이나 OS 탭 전환이 아니다. 정상 선택은 실제 키 또는 selectOption을 쓰되 native 검사는 실제 키로 별도 검증했다. 앱 모델 전역 노출·게임 상태 주입·치트는 없다. 모델의 제어 배치는 정밀 규칙 검사이지 브라우저 플레이가 아니다.
+- preview는 관리 Chromium `153.0.8010.36`의 **일반시간** 실제 키/버튼과 읽기전용 DOM/Canvas다. clock 설치·가속·게임 상태 주입 없이 확인했다. 두 경로의 console/page error는 0이며 Canvas readback 성능 권고 경고 각 1건은 오류와 구분한다. 브라우저 JS/CSS 304는 정상 캐시이고 별도 fetch는 200/정확한 bytes였다. 로컬 하위 경로는 실제 Pages 공개 검증이 아니다.
+- 코드 검토에서 모델의 current만 적 수평 이동에 쓰고 기존 점수·적 수·하강·충돌/승패·플레이어/탄환 규칙을 보존했다. 초기/다음 프레임의 단일 rAF 예약과 P 전환의 시계/입력 비움은 유지된다. 저장 API/쿠키/URL 복원은 없고 select change 리스너는 초기 연결 한 번뿐이며 전환 시 중복 루프·리스너 생성은 없다.
+
+### 소유 자원·미확인
+
+| shell | PID / 부모 PID | 주소·종료 |
+|---|---|---|
+| `difficulty-dev` | 40536 / 33564 | `http://127.0.0.1:5173/`, 현재 worktree strictPort·HTTP200 확인, E2E 후 소유 shell 종료 |
+| `difficulty-preview-root` | 43312 / 34368 | `http://127.0.0.1:4173/`, 현재 worktree strictPort·HTTP200 확인 후 소유 shell 종료 |
+| `difficulty-preview-subpath` | 8440 / 42680 | `http://127.0.0.1:4173/space-Invaders-demo02/`, 현재 worktree strictPort/base·HTTP200 확인 후 소유 shell 종료 |
+
+15:46:08 +09:00에 세 PID 부재와 두 포트 LISTEN0을 재확인했다. 모르는 프로세스를 종료하지 않았다. `difficulty-preview-subpath.png`는 실제 캡처/view 뒤 세션 아티팩트로 이동했으며 Git에 넣지 않는다. 의존성·빌드·검사 ignored 산출물은 추적 파일/clean과 구분한다.
+
+초기 동기화 제품 결함과 native 메뉴 재열기 검사 순서, missing-dependency 실패를 각각 기록하고 모두 복구했다. PR/CI는 제출 후 이슈 댓글에 실제 근거를 남긴다. 병합·실제 공개 전 **08-02 진행, 누적 17/20**을 유지한다. 사람 직접 플레이·다른 OS/브라우저·실제 OS 탭 전환·App trust/Run·인간 UI 승인·AGENTS/Skill 무요청 자동 적용은 미확인이며 이전 안전 정책 거부를 우회하지 않는다.
